@@ -1,0 +1,22 @@
+name: rogi_le
+
+channels:
+  - conda-forge
+  - defaults
+  - pytorch
+
+dependencies:
+  - botorch
+  - cudatoolkit=11.3
+  - python >= 3.8
+  - pytorch::pytorch >=1.10
+  - rdkit
+  - pip
+  - pip:
+    - configargparse
+    - h5py
+    - numpy
+    - ray[tune] >= 1.10
+    - pytorch-lightning
+    - scikit-learn
+    - tqdm
