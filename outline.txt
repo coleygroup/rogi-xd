@@ -7,11 +7,12 @@ general notes:
 - want to see what people are doing when they talk about smoothness in learned spaces
 - "want to do this qualtitative analysis from a more quantitative lens"
 
-learned embeddings:
-------------------
-- smiles VAE
-- JTVAE
-- ChemGPT, ChemBERT, MolBERT, XMol
+models:
+-------
+- smiles VAE (GT4SD)
+- ChemGPT (https://huggingface.co/ncfrey/ChemGPT-1.2B)
+- ChemBERTa (https://huggingface.co/DeepChem/ChemBERTa-77M-MLM)
+- Attribute masking GIN
 
 semi-supervised:
 ---------------
