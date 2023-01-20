@@ -182,8 +182,6 @@ def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
 
     clusters = fcluster(Z, t, "distance")
 
-    # get the variance/std dev of the property across clusters
-    # we use weights to reduce the size of the `means` array
     means = []
     weights = []
     for i in set(clusters):
@@ -236,10 +234,12 @@ def rogi(
     nboots: int = 1,
 ):
     y = np.array(y)
+    metric = Metric.get(metric)
+
     if normalize:
         y = safe_normalize(y)
     elif (y < 0).any() or (y > 1).any():
-        warnings.warn("Input array 'y' has values outside of [0, 1]")
+        warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
 
     if X is not None:
         D = calc_distance_matrix_X(X, metric, max_dist)
@@ -251,7 +251,7 @@ def rogi(
         fps = calc_fps(mols, Fingerprint.MORGAN, 2, 2048)
         D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
 
-    thresholds, sds = coarse_grain(D, min_dt)
+    thresholds, sds = coarse_grain(D, y, min_dt)
     score = sds[0] - trapezoid(sds, thresholds)
 
     if nboots > 1:
@@ -263,7 +263,7 @@ def rogi(
             idxs = np.random.choice(range(size), size=size, replace=True)
             D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
-            thresholds, sds = coarse_grain(D, min_dt)
+            thresholds, sds = coarse_grain(D, y, min_dt)
             boot_score = sds[0] - trapezoid(sds, thresholds)
             boot_scores.append(boot_score)
 
