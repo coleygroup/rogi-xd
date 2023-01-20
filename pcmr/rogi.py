@@ -1,43 +1,140 @@
-"""
-module for calculating the ROuGhness Index (ROGI), heavily borrowed from
-https://github.com/coleygroup/rogi/blob/main/src/rogi/roughness_index.py
-"""
-from typing import Iterable, Tuple, Optional, Union
+from itertools import chain
+import logging
+from typing import Iterable, Optional, Union
 import warnings
 
-from fastcluster import complete as MaxLinkage
+from fastcluster import complete as max_linkage
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
-import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import AllChem, DataStructs
+from numpy.typing import ArrayLike
+from rdkit.Chem import AllChem as Chem
+from rdkit.DataStructs import ExplicitBitVect, BulkTanimotoSimilarity, BulkDiceSimilarity
 from scipy.cluster.hierarchy import fcluster
+from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 
 from pcmr.utils import Fingerprint, Metric
 
+logger = logging.getLogger(__name__)
 
-def _safe_normalize(x: ArrayLike, eps: float = 1e-6):
-    x = np.array(x)
+
+def safe_normalize(x: np.ndarray, eps: float = 1e-6) -> np.ndarray:
     if x.max() - x.min() > eps:
         return (x - x.min()) / (x.max() - x.min())
+
+    return x - x.min()
+
+
+def unsquareform(A: np.ndarray) -> np.ndarray:
+    """Return the condensed distance matrix (upper triangular) of the square distance matrix `A`"""
+    return A[np.triu_indices(A.shape[0], k=1)]
+
+
+def calc_max_dist(X: np.ndarray, metric: Metric) -> float:
+    bounds = np.stack([X.min(0), X.max(0)])
+    ranges = np.ptp(bounds, 0)
+
+    if metric == Metric.EUCLIDEAN:
+        max_dist = np.sqrt(np.sum(ranges**2))
+    elif metric == Metric.CITYBLOCK:
+        max_dist = np.sum(ranges)
+    elif metric == Metric.COSINE:
+        # in scipy pdist, 1-cosine is returned so that \in [0,2]
+        max_dist = 2.0
+    elif metric == Metric.MAHALANOBIS:
+        # more general approach that would work for other metrics too excluding e.g. cosine
+        CV = np.atleast_2d(np.cov(X.astype(np.double, copy=False).T))
+        VI = np.linalg.inv(CV).T.copy()
+        max_dist = pdist(bounds, metric="mahalanobis", VI=VI)[0]
     else:
-        return x - x.min()
+        raise ValueError(f"Invalid metric! got: {metric.value}")
+
+    return max_dist
 
 
-def unsquareform(a: np.ndarray):
-    return a[np.triu_indices(a.shape[0], k=1)]
+def calc_distance_matrix_X(
+    X: np.ndarray, metric: Metric, max_dist: Optional[float] = None
+) -> np.ndarray:
+    if metric == Metric.PRECOMPUTED:
+        if X.ndim == 1:
+            D = X
+        elif X.ndim == 2:
+            D = unsquareform(X)
+        else:
+            raise ValueError(f"Precomputed distance matrix have have rank {{1, 2}}. got: {X.ndim}")
+
+        max_dist = max_dist or 1.0
+    else:
+        D: np.ndarray = pdist(X, metric.value)
+        max_dist = max_dist or calc_max_dist(X, metric)
+
+    # Scaling distances only normalizes the integration domain 
+    D = D / max_dist
+
+    if (D > 1.0).any():
+        raise ValueError(
+            "Pairwise distance matrix is not normalized! "
+            f"Please ensure the provided 'max_dist' is correct. got: {max_dist:0.3f}"
+        )
+
+    return D
 
 
-def nmoment(x: ArrayLike, c: Optional[float] = None, n: int = 2, w: Optional[ArrayLike] = None):
-    """Estimate the n-th moment.
+def calc_fps(
+    mols: Iterable[Chem.Mol],
+    fp: Fingerprint = Fingerprint.MORGAN,
+    radius: int = 2,
+    length: int = 2048,
+) -> list[ExplicitBitVect]:
+    if fp == Fingerprint.MORGAN:
+        fps = [Chem.GetMorganFingerprintAsBitVect(m, radius=radius, nBits=length) for m in mols]
+    elif fp == Fingerprint.TOPOLOGICAL:
+        fps = [Chem.RDKFingerprint(m) for m in mols]
+    else:
+        raise ValueError(f"Invalid fingerprint! got: {fp.value}")
+
+    return fps
+
+
+def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> np.ndarray:
+    logger.info("Computing distance matrix...")
+
+    if metric == Metric.TANIMOTO:
+        sim_func = BulkTanimotoSimilarity
+    elif metric == Metric.DICE:
+        sim_func = BulkDiceSimilarity
+    else:
+        raise ValueError(f"Unsupported metric! got: {metric.value}")
+
+    simss = (sim_func(fps[i], fps[i + 1 :]) for i in range(len(fps)))
+    sims = list(chain(*simss))
+    S = np.array(sims)
+
+    return 1 - S
+
+
+def validate_smis(smis: Iterable[str]) -> list[str]:
+    canon_smis = []
+    for smi in smis:
+        try:
+            c_smi = Chem.CanonSmiles(smi)
+            canon_smis.append(c_smi)
+        except:
+            raise ValueError(f"Invalid SMILES: {smi}")
+
+    return canon_smis
+
+
+def weighted_moment(
+    x: ArrayLike, center: Optional[float] = None, n: int = 2, weights: Optional[ArrayLike] = None
+) -> float:
+    """calculate the n-th moment with given sample weights
 
     Parameters
     ----------
     x : array_like
-        Samples.
+        samples
     c : Optional[float], default=None
-        Central location. If None, the average of `x` is used
+        central location. If None, the average of `x` is used
     n : int, default=2
         the moment to calculate
     w : Optional[ArrayLike], default=None
@@ -45,369 +142,133 @@ def nmoment(x: ArrayLike, c: Optional[float] = None, n: int = 2, w: Optional[Arr
 
     Returns
     -------
-        float
-            Value of the n-th moment.
+    float
+        the n-th moment
     """
     x = np.array(x)
-    c = c or np.average(x, weights=w)
+    center = center or np.average(x, weights=weights)
 
-    return np.average((x - c) ** n, weights=w)
+    return np.average((x - center) ** n, weights=weights)
 
 
-class RoughnessIndex:
-    def __init__(
-        self,
-        Y: ArrayLike,
-        norm_Y: bool = True,
-        smiles: Optional[ArrayLike] = None,
-        fps: Optional[ArrayLike] = None,
-        X: Optional[NDArray] = None,
-        max_dist: Optional[float] = None,
-        metric: Union[str, Metric] = Metric.TANIMOTO,
-        verbose: bool = True,
-    ):
-        """A measure of roughness for molecular property datasets.
+def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
+    """the coarsened standard deviation of the samples `y`
 
-        Parameters
-        ----------
-        Y : ArrayLike
-            List of property values, either continuous or binary.
-        norm_Y : bool, default=True
-            Whether to normalize the property (Y) values. Note that Y values need to be between
-            zero and one for the, ROGI score to be bounded by one.
-        smiles : Optional[ArrayLike], default=None
-            Array/List of SMILES strings for the molecules with properties Y. SMILES need to be
-            provided if `fps` or `X` is not provided.
-        fps : Optional[ArrayLike], default=None
-            2d array with pre-computed fingerprints for the molecules with properties Y
-        X : Optional[NDArray], default=None
-            2d array with descriptors for the molecules with properties Y. If the `metric` chosen
-            is `precomputed`, then provide a square distance matrix here. Default is None.,
-        max_dist : Optional[float], default=None
-            Maximum distance achievable between any two molecules given the chosen descriptors `X`
-            and metric. If `None`, this is estimated from the dataset.
-        metric : str, default="tanimoto"
-            Distance metric to use. Available metrics are: "tanimoto", "euclidean", "cityblock"
-            "cosine", "mahalanobis", and "precomputed". When using fingerprints, "tanimoto" is used
-            by default. With descriptors, any other distance may be used. If choosing
-            "precomputed", please provide a square distance matrix for the argument `X`.,
-        verbose : bool, default=True
-            Whether to print some information to screen. Default is True.,
+    The coarsened moment is calculated via clustering the input samples `y` according to the input
+    linkage matrix `Z` and distance threhsold `t` and calculating the mean value of each cluster.
+    The 2nd weighted moment (variance) of these cluster means is calculated with weights equal to
+    the size of the respective cluster.
 
-        Raises
-        ------
-        ValueError
-            if `smis`, `fps`, and `X`, are all `None`
-        """
-        self.norm_Y = norm_Y
-        self.Y = Y
-        self.smiles = smiles
-        self.fps = fps
-        self.X = X
-        self.max_dist = max_dist
-        self.metric = metric if isinstance(metric, Metric) else Metric.get(metric)
-        self.verbose = verbose
+    NOTE: The samples are assumed to lie in the range [0, 1], so the coarsened standard deviation
+    is multiplied by 2 to normalize it to the range [0, 1].
 
-        self.validate_inputs()
+    Parameters
+    ----------
+    y : np.ndarray
+        the original samples
+    Z : np.ndarray
+        the linkage matrix from hierarchical cluster. See :func:`scipy.cluster.hierarchy.linkage`
+        for more details
+    t : float
+        the distance threshold to apply when forming clusters
 
-        self.Z = None
-        self.distance_thresholds = None
-        self.property_moments = None
-        self.auc = None
+    Returns
+    -------
+    float
+        the coarsened standard deviation
+    """
+    if (y < 0).any() or (y > 1).any():
+        warnings.warn("Input array 'y' has values outside of [0, 1]")
 
-        # normalize property values
-        if self.norm_Y is True:
-            self._Y = _safe_normalize(Y)
-        else:
-            self._Y = np.array(Y)
+    clusters = fcluster(Z, t, "distance")
 
-        # check we have at least one input for the domain
-        if self.smiles is None and self.fps is None and self.X is None:
-            raise ValueError("No smiles, fingerprint, or descriptor input found")
+    # get the variance/std dev of the property across clusters
+    # we use weights to reduce the size of the `means` array
+    means = []
+    weights = []
+    for i in set(clusters):
+        mask = clusters == i
+        means.append(y[mask].mean())
+        weights.append(len(y[mask]))
 
-        # compute fingerprints and/or distance matrix if needed
-        self._fps = fps
-        self._Dx = self._parse_X_input()
+    # max std dev is 0.5 --> multiply by 2 so that results is in [0,1]
+    var = weighted_moment(means, n=2, weights=weights)
+    sd_normalized = 2 * var ** (1 / 2)
 
-        # if self._Dx is None, no descriptors were provided and we compute fingerprints
-        if self._Dx is None:
-            if self._fps is None:
-                self._smiles = self.validate_smis(smiles)
-                self._mols = [Chem.MolFromSmiles(smi) for smi in self._smiles]
-                self._fps = self.compute_fingerprints(
-                    self._mols, Fingerprint.MORGAN, 2, 2048, self.verbose
-                )
+    return sd_normalized
 
-            self._Dx = self._compute_distance_matrix(self._fps, Metric.TANIMOTO, self.verbose)
 
-    def validate_inputs(self):
-        # when Y_norm is False, we still expect Y \in [0,1], i.e. pre-normalized
-        if self.norm_Y is False:
-            if any(np.array(self.Y) > 1) or any(np.array(self.Y) < 0):
-                if self.verbose is True:
-                    warnings.warn(
-                        "all property values of Y are expected to be between 0 and 1."
-                        "Roughness Index will not be normalized and may exceed 1."
-                    )
+def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.ndarray, np.ndarray]:
+    logger.info("Clustering...")
 
-        # if descriptors provided, make sure correct format
-        if self.X is not None:
-            if isinstance(self.X, pd.DataFrame):
-                self._X = self.X.to_numpy()
-            else:
-                self._X = np.array(self.X)
+    Z = max_linkage(D)
+    all_distance_thresholds = Z[:, 2]
 
-            if self.metric == Metric.PRECOMPUTED:
-                if self._X.ndim not in [1, 2]:
-                    raise ValueError(f"X expected to be a 1-d or 2-d array")
-            else:
-                if self._X.ndim != 2:
-                    raise ValueError(f"X expected to be a 2-d array or pandas DataFrame")
-        else:
-            self._X = None
+    # subsample distance_thresholds to avoid doing too many computations on
+    # distances that are virtually the same
+    thresholds = []
+    t_prev = -1
+    for t in all_distance_thresholds:
+        if t < t_prev + min_dt:
+            continue
 
-    def _parse_X_input(self):
-        """Parse input descriptors to get distance matrix"""
-        if self._X is None:
-            return None
+        thresholds.append(t)
+        t_prev = t
 
-        # if precomputed, it should be a distance matrix
-        if self.metric == Metric.PRECOMPUTED:
-            # convert to pdist
-            if self._X.ndim == 2:
-                Dx = unsquareform(self._X)
-            else:
-                Dx = self._X
+    sds = [coarsened_sd(y, Z, t) for t in thresholds]
 
-            if self.max_dist is None:
-                self._max_dist = 1.0  # i.e. assume already normalized
-            else:
-                # if max possible distance is provided, use that
-                self._max_dist = self.max_dist
-        else:
-            # compute distance matrix using original X space
-            # which will be used for clustering
-            Dx = pdist(self._X, metric=self.metric)
+    # when num_clusters == num_data ==> stddev/skewness of dataset
+    thresholds = np.array([0.0, *thresholds, 1.0])
+    sds = np.array([coarsened_sd(y, Z, t=-0.1), *sds, coarsened_sd(y, Z, t=1.1)])
 
-            # estimate max distance from range of descriptors provided if max_dist not given
-            if self.max_dist is None:
-                num_dim = self._X.shape[1]
-                ranges = np.array(
-                    [self._X[:, j].max() - self._X[:, j].min() for j in range(num_dim)]
-                )
-                if self.metric == Metric.EUCLIDEAN:
-                    self._max_dist = np.sqrt(np.sum(ranges**2))
-                elif self.metric == Metric.CITYBLOCK:
-                    self._max_dist = np.sum(ranges)
-                elif self.metric == Metric.COSINE:
-                    self._max_dist = 2.0  # in scipy pdist, 1-cosine is returned so that \in [0,2]
-                elif self.metric == Metric.MAHALANOBIS:
-                    # more general approach that would work for other metrics too
-                    # excluding e.g. cosine
-                    Xcorners = np.stack([np.min(self._X, axis=0), np.max(self._X, axis=0)])
-                    CV = np.atleast_2d(np.cov(self._X.astype(np.double, copy=False).T))
-                    VI = np.linalg.inv(CV).T.copy()
-                    self._max_dist = pdist(Xcorners, metric="mahalanobis", VI=VI)[0]
-                else:
-                    raise ValueError(f"Invalid metric! got: {self.metric}")
-            else:
-                # if max possible distance is provided, use that
-                self._max_dist = self.max_dist
+    return thresholds, sds
 
-                # normalize distances based on largest possible distance
-        # scaling distances does not change clustering results
-        # it only normalizes the domain of the integration
-        Dx = Dx / self._max_dist
 
-        # check that we Dx \in [0,1]
-        if any(Dx > 1.0):
-            raise ValueError(
-                "Pairwise distance matrix is not normalized. "
-                "Make sure the provided maximum distance is correct."
-            )
+def rogi(
+    y: ArrayLike,
+    normalize: bool = True,
+    X: Optional[np.ndarray] = None,
+    fps: Optional[Iterable[ExplicitBitVect]] = None,
+    smis: Optional[Iterable[str]] = None,
+    metric: Union[str, Metric] = Metric.TANIMOTO,
+    max_dist: Optional[float] = None,
+    min_dt: float = 0.01,
+    nboots: int = 1,
+):
+    y = np.array(y)
+    if normalize:
+        y = safe_normalize(y)
+    elif (y < 0).any() or (y > 1).any():
+        warnings.warn("Input array 'y' has values outside of [0, 1]")
 
-        return Dx
+    if X is not None:
+        D = calc_distance_matrix_X(X, metric, max_dist)
+    elif fps is not None:
+        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
+    elif smis is not None:
+        smis = validate_smis(smis)
+        mols = [Chem.MolFromSmiles(smi) for smi in smis]
+        fps = calc_fps(mols, Fingerprint.MORGAN, 2, 2048)
+        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
 
-    @property
-    def Y(self) -> np.ndarray:
-        return self.__Y
+    thresholds, sds = coarse_grain(D, min_dt)
+    score = sds[0] - trapezoid(sds, thresholds)
 
-    @Y.setter
-    def Y(self, Y: ArrayLike):
-        if self.norm_Y is True:
-            self.__Y = _safe_normalize(Y)
-        else:
-            self.__Y = np.array(Y)
+    if nboots > 1:
+        D_square = squareform(D)
+        size = D_square.shape[0]
 
-    @staticmethod
-    def validate_smis(smis: str):
-        canon_smis = []
-        for smi in smis:
-            try:
-                c_smi = Chem.CanonSmiles(smi)
-                canon_smis.append(c_smi)
-            except:
-                raise ValueError("Invalid SMILES:", smi)
+        boot_scores = []
+        for _ in range(nboots):
+            idxs = np.random.choice(range(size), size=size, replace=True)
+            D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
-        return canon_smis
+            thresholds, sds = coarse_grain(D, min_dt)
+            boot_score = sds[0] - trapezoid(sds, thresholds)
+            boot_scores.append(boot_score)
 
-    @staticmethod
-    def compute_fingerprints(
-        mols: Iterable[Chem.Mol],
-        fp: Fingerprint = Fingerprint.MORGAN,
-        radius: int = 2,
-        nBits: int = 2048,
-        verbose: bool = False,
-    ):
-        if verbose is True:
-            print("Computing fingerprints...")
+        uncertainty = np.std(boot_scores)
+    else:
+        uncertainty = None
 
-        if fp == Fingerprint.TOPOLOGICAL:
-            fps = [Chem.RDKFingerprint(m) for m in mols]
-        elif fp == Fingerprint.MORGAN:
-            fps = [
-                AllChem.GetMorganFingerprintAsBitVect(m, radius=radius, nBits=nBits) for m in mols
-            ]
-        else:
-            raise ValueError(f"fingerprint {fp} not implemented")
-
-        return fps
-
-    @staticmethod
-    def _compute_distance_matrix(fps, metric: Metric = Metric.TANIMOTO, verbose: bool = False):
-        # metrics: Tanimoto, Dice
-        if verbose is True:
-            print("Computing distance matrix...")
-
-        if metric == Metric.TANIMOTO:
-            sim_func = DataStructs.BulkTanimotoSimilarity
-        elif metric == Metric.DICE:
-            sim_func = DataStructs.BulkDiceSimilarity
-        else:
-            raise ValueError(f"metric {metric} not implemented")
-
-        # we compute a condensed distance matrix, i.e. upper triangular as 1D array
-        # https://stackoverflow.com/questions/13079563/how-does-condensed-distance-matrix-work-pdist
-        num_fps = len(fps)
-        Dx = []
-        for i in range(num_fps):
-            # i+1 becauase we know the diagonal is zero
-            sim = np.array(sim_func(fps[i], fps[i + 1 :]))
-            dist = 1.0 - sim
-            Dx.extend(list(dist))
-        return np.array(Dx)
-
-    def _get_second_moments(self, t):
-        clusters = fcluster(self.Z, t=t, criterion="distance")
-        # get the variance/std dev of the property across clusters
-        # we use weights to reduce the size of the ``means`` array
-        means = []
-        weights = []
-        for i in set(clusters):
-            mask = clusters == i
-            m = np.mean(self._Y[mask])
-            w = len(self._Y[mask])
-            means.append(m)
-            weights.append(w)
-
-        variance = nmoment(means, c=None, n=2, w=weights)
-        # return normalized second moment
-        # max std dev is 0.5 ==> multiply by 2 so that results is [0,1]
-        norm_stddev = 2 * np.sqrt(variance)
-        return norm_stddev
-
-    def _compute_distances_and_moments(self, Dx, min_dt=0):
-        if self.verbose is True:
-            print("Clustering...")
-
-        # compute linkage matrix
-        self.Z = MaxLinkage(Dx)
-        all_distance_thresholds = self.Z[:, 2]
-
-        # subsample distance_thresholds to avoid doing too many computations on
-        # distances that are virtually the same
-        distance_thresholds = []
-        t_prev = -1
-        for t in all_distance_thresholds:
-            if t - min_dt < t_prev:
-                continue
-            distance_thresholds.append(t)
-            t_prev = t
-
-        moments = []
-        for t in distance_thresholds:
-            m = self._get_second_moments(t)
-            moments.append(m)
-
-        # ensure we have the endpoints, i.e. t=0 and t=1
-        distance_thresholds = np.array([0.0] + list(distance_thresholds) + [1.0])
-        # when num_clusters = num_data --> stddev/skewness of dataset
-        moments = np.array(
-            [self._get_second_moments(t=-0.1)] + moments + [self._get_second_moments(t=1.1)]
-        )
-
-        return distance_thresholds, moments
-
-    def compute(self, min_dt: float = 0.01, nboots: int = 1) -> Union[float, Tuple[float, float]]:
-        """Computes the ROGI score.
-
-        Parameters
-        ----------
-        min_dt : float
-            Smallest dt allowed for determining the thresholds t used for clustering and for numerical integration.
-            Default is 0.01.
-        nboots : int
-            Number of bootstrap samples used to estimate the standard error of ROGI. If 1, the uncertainty is not
-            estimated. Default is 1.
-
-        Returns
-        -------
-        tuple
-            ROGI score and its uncertainty. The uncertainty is `None` if `nboots` is less than 2.
-        """
-
-        # cluster and compute distances vs variance
-        distance_thresholds, property_moments = self._compute_distances_and_moments(
-            Dx=self._Dx, min_dt=min_dt
-        )
-
-        # threshold used for clustering (from 0 to 1)
-        self.distance_thresholds = distance_thresholds
-        # decreasing dispersion/skewness with larger clusters
-        self.property_moments = property_moments
-
-        # integrate by trapeziodal rule
-        dx = np.diff(self.distance_thresholds)
-        fx = (self.property_moments[:-1] + self.property_moments[1:]) * 0.5
-        self.auc = np.dot(fx, dx)
-
-        rogi_score = self.property_moments[0] - self.auc
-
-        # compute uncertainty
-        if nboots > 1:
-            _squared_Dx = squareform(self._Dx)
-            size = _squared_Dx.shape[0]
-            boot_scores = []
-            for nboot in range(nboots):
-                # get bootstrap indixes
-                boot_idx = np.random.choice(range(size), size=size, replace=True)
-
-                # subsample distance matrix
-                Dx = unsquareform(_squared_Dx[np.ix_(boot_idx, boot_idx)])
-
-                # cluster and compute distances vs variance
-                distance_thresholds, property_moments = self._compute_distances_and_moments(
-                    Dx=Dx, min_dt=min_dt
-                )
-
-                # integrate by trapeziodal rule
-                dx = np.diff(distance_thresholds)
-                fx = (property_moments[:-1] + property_moments[1:]) * 0.5
-                auc = np.dot(fx, dx)
-
-                boot_score = property_moments[0] - auc
-                boot_scores.append(boot_score)
-
-            return rogi_score, np.std(boot_scores)
-        else:
-            return rogi_score
+    return score, uncertainty
