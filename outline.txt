@@ -14,10 +14,6 @@ models:
 - ChemBERTa (https://huggingface.co/DeepChem/ChemBERTa-77M-MLM)
 - Attribute masking GIN
 
-semi-supervised:
----------------
-training from scratch
-
 tasks
 -----
 - TDC benchmark tasks
@@ -29,7 +25,6 @@ premise:
 - are these embeddings actually "smoother" than fingerprints/descriptors?
 - implicit assumption in optimization algo's that the space is smooth and we would like to actually 
     investigate
-- how strong of a regularizer is the aux loss of an SSL
 
 questions:
 -----

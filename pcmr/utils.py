@@ -39,14 +39,4 @@ class Metric(AutoName):
     CITYBLOCK = auto()
     MAHALANOBIS = auto()
     PRECOMPUTED = auto()
-
-
-class Dataset(AutoName):
-    BACE = auto()
-    CLEARANCE = auto()
-    CLINTOX = auto()
-    DELANEY = auto()
-    FREESOLV = auto()
-    LIPO = auto()
-    PDBBIND = auto()
     
