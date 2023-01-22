@@ -20,7 +20,7 @@ def combine_splits(splits: tuple[DiskDataset, ...]) -> tuple[list[str], np.ndarr
 
 
 class MoleculeNetDataModule(DataModule):
-    _DATASETS = {"BACE", "CLEARANCE", "CLINTOX", "DELANEY", "FREESOLV", "LIPO", "PDBBIND"}
+    __DATASETS = {"BACE", "CLEARANCE", "CLINTOX", "DELANEY", "FREESOLV", "LIPO", "PDBBIND"}
 
     @classmethod
     def get_full_dataset(cls, dataset) -> tuple[list[str], tuple[DiskDataset, ...]]:
@@ -43,11 +43,11 @@ class MoleculeNetDataModule(DataModule):
             raise ValueError(f"Invalid MoleculeNet dataset! got: {dataset}")
 
         return task_names, splits
-        
+
     @classmethod
     @property
     def datasets(cls) -> set[str]:
-        return cls._DATASETS
+        return cls.__DATASETS
 
     @classmethod
     def get_tasks(cls, dataset: str) -> set[str]:
