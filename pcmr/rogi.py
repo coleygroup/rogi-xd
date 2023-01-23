@@ -68,7 +68,7 @@ def calc_distance_matrix_X(
         D: np.ndarray = pdist(X, metric.value)
         max_dist = max_dist or calc_max_dist(X, metric)
 
-    # Scaling distances only normalizes the integration domain 
+    # Scaling distances only normalizes the integration domain
     D = D / max_dist
 
     if (D > 1.0).any():
@@ -129,7 +129,14 @@ def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
     return canon_smis
 
 
-def calc_distance_matrix(X: Optional[np.ndarray], fps: Optional[list[ExplicitBitVect]], smis: Optional[Iterable[str]], metric: Union[str, Metric, None], fp_config: FingerprintConfig = FingerprintConfig(), max_dist: Optional[float] = None):
+def calc_distance_matrix(
+    X: Optional[np.ndarray],
+    fps: Optional[list[ExplicitBitVect]],
+    smis: Optional[Iterable[str]],
+    metric: Union[str, Metric, None],
+    fp_config: FingerprintConfig = FingerprintConfig(),
+    max_dist: Optional[float] = None,
+):
     """Calculate the distance matrix of the input molecules
 
     NOTE: see :func:`~pcmr.rogi.rogi` for details on the following arguments: `X`,
@@ -142,7 +149,7 @@ def calc_distance_matrix(X: Optional[np.ndarray], fps: Optional[list[ExplicitBit
     smis : Optional[Iterable[str]], default=None
     metric : Union[str, Metric, None], default=None
     fp_config: FingerprintConfig, default=FingerprintConfig()
-    
+
     Returns
     -------
     np.ndarray

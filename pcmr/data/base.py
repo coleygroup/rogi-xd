@@ -39,11 +39,11 @@ class DataModule(ABC):
             property values, respectively, of the data.
         """
         df = cls.get_all_data(dataset, task)
-        
+
         if len(df) > n:
             logger.info(f"Subsampling {n} rows from dataframe with {len(df)} rows")
             return df.sample(n, random_state=seed)
-            
+
         return df
 
     @classmethod
@@ -75,11 +75,9 @@ class DataModule(ABC):
         pd.DataFrame
             a `DataFrame` containing two columns: `smiles` and `y` that hold the SMILES strings and
             property values, respectively, of the data.
-        
+
         Raises
         ------
         ValueError
             if the input `task` is not associated the given `dataset`
         """
-
-    

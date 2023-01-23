@@ -9,14 +9,14 @@ from pcmr.data.molnet import get_task_data
 from pcmr.rogi import rogi
 from pcmr.utils import Dataset, Metric
 
-CHEMGPT =  "ncfrey/ChemGPT-1.2B"
+CHEMGPT = "ncfrey/ChemGPT-1.2B"
 
 
 def main(args):
     featurizer = pipeline(
         "feature-extraction", model=CHEMGPT, device=0, framework="pt", return_tensors=True
     )
-    featurizer.tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    featurizer.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
 
     smis, y = get_task_data(args)
 

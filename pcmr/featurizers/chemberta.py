@@ -20,7 +20,7 @@ class ChemGPTFeaturizer(Featurizer):
             model=self.CHEMBERTA,
             device=device,
             framework="pt",
-            return_tensors=True
+            return_tensors=True,
         )
         self.batch_size = batch_size
 

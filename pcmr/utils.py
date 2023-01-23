@@ -12,7 +12,7 @@ class AutoName(Enum):
 
     def __str__(self) -> str:
         return self.value
-        
+
     @classmethod
     def get(cls, name: Union[str, AutoName]) -> AutoName:
         if isinstance(name, cls):
@@ -69,6 +69,12 @@ class ClassRegistry(Mapping[str, Type]):
         return actual_decorator
 
     __call__ = register
-    def __getitem__(self, key: str) -> Type: self.__registry[key.lower()]
-    def __iter__(self) -> Iterator[str]: return iter(self.__registry)
-    def __len__(self) -> int: return len(self.__registry)
+
+    def __getitem__(self, key: str) -> Type:
+        self.__registry[key.lower()]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.__registry)
+
+    def __len__(self) -> int:
+        return len(self.__registry)

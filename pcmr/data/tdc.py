@@ -9,8 +9,18 @@ from pcmr.data.base import DataModule
 
 
 class TdcDataModule(DataModule):
-    __ADME_DATASETS = {'CLEARANCE_HEPATOCYTE_AZ', 'SOLUBILITY_AQSOLDB', 'CLEARANCE_MICROSOME_AZ', 'VDSS_LOMBARDO', 'CACO2_WANG', 'HALF_LIFE_OBACH', 'LIPOPHILICITY_ASTRAZENECA', 'PPBR_AZ', 'HYDRATIONFREEENERGY_FREESOLV'}
-    __TOX_DATASETS = {'HERG_CENTRAL', 'LD50_ZHU'}
+    __ADME_DATASETS = {
+        "CLEARANCE_HEPATOCYTE_AZ",
+        "SOLUBILITY_AQSOLDB",
+        "CLEARANCE_MICROSOME_AZ",
+        "VDSS_LOMBARDO",
+        "CACO2_WANG",
+        "HALF_LIFE_OBACH",
+        "LIPOPHILICITY_ASTRAZENECA",
+        "PPBR_AZ",
+        "HYDRATIONFREEENERGY_FREESOLV",
+    }
+    __TOX_DATASETS = {"HERG_CENTRAL", "LD50_ZHU"}
 
     @classmethod
     @property
@@ -33,4 +43,3 @@ class TdcDataModule(DataModule):
             df: pd.DataFrame = Tox(dataset_, label_name=task).get_data("df")
 
         return df.rename(columns={"Drug": "smiles", "Y": "y"})
-    
