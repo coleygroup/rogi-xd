@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import logging
-from typing import Optional
+from typing import Iterable, Optional
 
 import pandas as pd
 
@@ -18,6 +18,26 @@ class DataModule(ABC):
     def get_data(
         cls, dataset: str, task: Optional[str] = None, n: int = 10000, seed: Optional[int] = None
     ) -> pd.DataFrame:
+        """get `n` rows of data from the associated (dataset, task) pair
+
+        Parameters
+        ----------
+        dataset : str
+            the parent dataset to get
+        task : Optional[str], default=None
+            the specific task to retrieve data for. If None,
+        n : int, default=10000
+            the maximum amount of datapoints to return. If `n` is larger than the full dataset,
+            return the full dataset. Otherwise, randomly subsample the dataset
+        seed : Optional[int], default=None
+            the random seed to use when subsampling the data (if necessary).
+
+        Returns
+        -------
+        pd.DataFrame
+            a `DataFrame` containing two columns: `smiles` and `y` that hold the SMILES strings and
+            property values, respectively, of the data.
+        """
         df = cls.get_all_data(dataset, task)
         
         if len(df) > n:
@@ -30,16 +50,36 @@ class DataModule(ABC):
     @property
     @abstractmethod
     def datasets(cls) -> set[str]:
-        return cls._DATASETS
+        """The possible datasets available from this DataModule"""
 
     @classmethod
     @abstractmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
-        pass
+    def get_tasks(cls, dataset: str) -> Iterable[str]:
+        """The tasks associated with the given dataset"""
 
     @classmethod
     @abstractmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
-        pass
+        """get all data from the associated (dataset, task) pair.
+
+        Parameters
+        ----------
+        dataset : str
+            the dataset to retrieve data for
+        task : Optional[str], default=None
+            the associated task name. This should only be specified in the case of datasets with
+            multiple tasks.
+
+        Returns
+        -------
+        pd.DataFrame
+            a `DataFrame` containing two columns: `smiles` and `y` that hold the SMILES strings and
+            property values, respectively, of the data.
+        
+        Raises
+        ------
+        ValueError
+            if the input `task` is not associated the given `dataset`
+        """
 
     

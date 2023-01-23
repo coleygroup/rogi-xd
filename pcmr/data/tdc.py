@@ -20,7 +20,7 @@ class TdcDataModule(DataModule):
     @classmethod
     def get_tasks(cls, dataset: str) -> set[str]:
         try:
-            return set(retrieve_label_name_list(dataset))
+            return retrieve_label_name_list(dataset)
         except KeyError:
             return []
 

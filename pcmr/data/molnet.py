@@ -53,7 +53,7 @@ class MoleculeNetDataModule(DataModule):
     def get_tasks(cls, dataset: str) -> set[str]:
         tasks, _ = cls.get_full_dataset(dataset)
 
-        return set(tasks)
+        return tasks
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
@@ -62,7 +62,7 @@ class MoleculeNetDataModule(DataModule):
         try:
             j = 0 if task is None else tasks.index(task)
         except ValueError:
-            raise ValueError(f"Invalid task! '{task}' is not a task in {dataset} dataset!")
+            raise ValueError(f"Invalid task! got: '{task}' but expected one of {tasks} or `None`!")
         y = Y[:, j]
 
         return pd.DataFrame(dict(smiles=smis, y=y))
