@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum, auto
-from typing import Union
+from typing import NamedTuple, Union
 
 
 class AutoName(Enum):
@@ -39,4 +39,9 @@ class Metric(AutoName):
     CITYBLOCK = auto()
     MAHALANOBIS = auto()
     PRECOMPUTED = auto()
-    
+
+
+class FingerprintConfig(NamedTuple):
+    fp: Fingerprint = Fingerprint.MORGAN
+    radius: int = 2
+    length: int = 2048

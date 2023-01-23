@@ -12,7 +12,7 @@ from scipy.cluster.hierarchy import fcluster
 from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 
-from pcmr.utils import Fingerprint, Metric
+from pcmr.utils import Fingerprint, FingerprintConfig, Metric
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +55,7 @@ def calc_distance_matrix_X(
     X: np.ndarray, metric: Metric, max_dist: Optional[float] = None
 ) -> np.ndarray:
     if metric == Metric.PRECOMPUTED:
+        logging.info("Using precomputed distance matrix")
         if X.ndim == 1:
             D = X
         elif X.ndim == 2:
@@ -85,6 +86,7 @@ def calc_fps(
     radius: int = 2,
     length: int = 2048,
 ) -> list[ExplicitBitVect]:
+    logging.info("Calculating fingerprints")
     if fp == Fingerprint.MORGAN:
         fps = [Chem.GetMorganFingerprintAsBitVect(m, radius=radius, nBits=length) for m in mols]
     elif fp == Fingerprint.TOPOLOGICAL:
@@ -103,7 +105,10 @@ def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> np.ndarra
     elif metric == Metric.DICE:
         sim_func = BulkDiceSimilarity
     else:
-        raise ValueError(f"Unsupported metric! got: {metric.value}")
+        raise ValueError(
+            "Unsupported fingerprint distance metric!"
+            f" got: {metric.value}. expected one of: (Metric.TANIMOTO, Metric.DICE)"
+        )
 
     simss = (sim_func(fps[i], fps[i + 1 :]) for i in range(len(fps)))
     sims = list(chain(*simss))
@@ -112,7 +117,7 @@ def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> np.ndarra
     return 1 - S
 
 
-def validate_smis(smis: Iterable[str]) -> list[str]:
+def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
     canon_smis = []
     for smi in smis:
         try:
@@ -122,6 +127,43 @@ def validate_smis(smis: Iterable[str]) -> list[str]:
             raise ValueError(f"Invalid SMILES: {smi}")
 
     return canon_smis
+
+
+def calc_distance_matrix(X: Optional[np.ndarray], fps: Optional[list[ExplicitBitVect]], smis: Optional[Iterable[str]], metric: Union[str, Metric, None], fp_config: FingerprintConfig = FingerprintConfig(), max_dist: Optional[float] = None):
+    """Calculate the distance matrix of the input molecules
+    
+    NOTE: see :func:`~pcmr.rogi.rogi` for details on the following arguments: `X`,
+    `fps`, `smis`, `metric`, `fp_config`, and `max_dist`
+
+    Parameters
+    ----------
+    X : Optional[np.ndarray], default=None
+    fps : Optional[list[ExplicitBitVect]], default=None
+    smis : Optional[Iterable[str]], default=None
+    metric : Union[str, Metric, None], default=None
+    fp_config: FingerprintConfig, default=FingerprintConfig()
+    
+    Returns
+    -------
+    np.ndarray
+        the upper triangular of the distance matrix as a 1-d vector
+    """
+    if X is not None:
+        metric = Metric.get(metric) if metric is not None else Metric.EUCLIDEAN
+        D = calc_distance_matrix_X(X, metric, max_dist)
+    elif fps is not None:
+        metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
+        D = calc_distance_matrix_fps(fps, metric)
+    elif smis is not None:
+        smis = validate_and_canonicalize_smis(smis)
+        mols = [Chem.MolFromSmiles(smi) for smi in smis]
+        fps = calc_fps(mols, **fp_config)
+        metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
+        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
+    else:
+        raise ValueError("args 'X', 'fps', and 'smis' were all `None`!")
+
+    return D
 
 
 def weighted_moment(
@@ -228,31 +270,62 @@ def rogi(
     X: Optional[np.ndarray] = None,
     fps: Optional[Iterable[ExplicitBitVect]] = None,
     smis: Optional[Iterable[str]] = None,
-    metric: Union[str, Metric] = Metric.TANIMOTO,
+    metric: Union[str, Metric, None] = None,
+    fp_config: FingerprintConfig = FingerprintConfig(),
     max_dist: Optional[float] = None,
     min_dt: float = 0.01,
     nboots: int = 1,
-):
-    y = np.array(y)
-    metric = Metric.get(metric)
+) -> tuple[float, Optional[float]]:
+    """calculate the ROGI score of a dataset and (optionally) its uncertainty
 
+    Parameters
+    ----------
+    y : ArrayLike
+        _description_
+    normalize : bool, default=True
+        _description_,
+    X : Optional[np.ndarray], default=None
+        Either (a) the precalculated input representations as a rank-2 matrix OR (b) the
+        precalculated distance matrix (if using Metric.PRECOMPUTED) as a rank-1 (dense) or rank-2
+        (square) matrix. NOTE: takes precedence over `fps` and `smis` if supplied.
+    fps : Optional[list[ExplicitBitVect]], default=None
+        the precalculated input fingerprints as rdkit :class:`ExplicitBitVect`s. NOTE: takes
+        precedence over and `smis` if supplied.
+    smis : Optional[Iterable[str]], default=None
+        the SMILES strings of the input molecules
+    metric : Union[str, Metric, None], default=None
+        the distance metric to use or its string alias. If `None`, will choose an appropriate
+        distance metric based on the representation supplied:
+
+        - `X`: Metric.EUCLIDEAN
+        - `fps`: Metric.TANIMOTO
+        - `smis`: Metric.TANIMOTO
+
+    fp_config: FingerprintConfig, default=FingerprintConfig()
+        the config to use for calculating fingerprints of the input SMILES strings, if necessary.
+        See :class:`~pcmr.utils.FingerprintConfig` for more details
+    min_dt : float, default=0.01
+        the mimimum distance to use between threshold values when coarse graining the dataset,
+    nboots : int, default=1
+        the number of bootstraps to use when calculating uncertainty. If `nboots <= 1`, no
+        bootstrapping will be performed
+
+    Returns
+    -------
+    float
+        the ROGI score
+    float | None
+        the uncertainty in the ROGI score. `None` if `nboots <= 1`
+    """
+    y = np.array(y)
     if normalize:
         y = safe_normalize(y)
     elif (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
-
-    if X is not None:
-        D = calc_distance_matrix_X(X, metric, max_dist)
-    elif fps is not None:
-        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
-    elif smis is not None:
-        smis = validate_smis(smis)
-        mols = [Chem.MolFromSmiles(smi) for smi in smis]
-        fps = calc_fps(mols, Fingerprint.MORGAN, 2, 2048)
-        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
+    D = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
 
     thresholds, sds = coarse_grain(D, y, min_dt)
-    score = sds[0] - trapezoid(sds, thresholds)
+    score: float = sds[0] - trapezoid(sds, thresholds)
 
     if nboots > 1:
         D_square = squareform(D)
@@ -264,7 +337,7 @@ def rogi(
             D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
             thresholds, sds = coarse_grain(D, y, min_dt)
-            boot_score = sds[0] - trapezoid(sds, thresholds)
+            boot_score: float = sds[0] - trapezoid(sds, thresholds)
             boot_scores.append(boot_score)
 
         uncertainty = np.std(boot_scores)
