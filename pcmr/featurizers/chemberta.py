@@ -4,13 +4,16 @@ import numpy as np
 import torch
 from transformers import pipeline
 
-from pcmr.featurizers.base import Featurizer
+from pcmr.featurizers.base import Featurizer, FeaturizerRegistry
 
 
+@FeaturizerRegistry.register(alias="chemberta")
 class ChemGPTFeaturizer(Featurizer):
     CHEMBERTA = "DeepChem/ChemBERTa-77M-MLM"
 
-    def __init__(self, batch_size: int = None, device: Union[int, str, None] = None) -> None:
+    def __init__(
+        self, batch_size: int = 32, device: Union[int, str, torch.device, None] = None
+    ) -> None:
         device = device or "cuda" if torch.cuda.is_available() else "cpu"
         self.fe = pipeline(
             "feature-extraction",

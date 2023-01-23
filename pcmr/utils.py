@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum, auto
-from typing import NamedTuple, Union
+import functools
+from typing import Iterator, NamedTuple, Optional, Type, Union
 
 
 class AutoName(Enum):
@@ -45,3 +47,28 @@ class FingerprintConfig(NamedTuple):
     fp: Fingerprint = Fingerprint.MORGAN
     radius: int = 2
     length: int = 2048
+
+
+class ClassRegistry(Mapping[str, Type]):
+    __registry = {}
+
+    def register(self, cls=None, *, alias: Optional[str] = None):
+        def actual_decorator(cls):
+            key = alias or cls.__name__.lower()
+            self.__registry[key] = cls
+
+            @functools.wraps(cls)
+            def cls_wrapper(*args, **kwargs):
+                return cls(*args, **kwargs)
+
+            return cls_wrapper
+
+        if cls:
+            return actual_decorator(cls)
+
+        return actual_decorator
+
+    __call__ = register
+    def __getitem__(self, key: str) -> Type: self.__registry[key.lower()]
+    def __iter__(self) -> Iterator[str]: return iter(self.__registry)
+    def __len__(self) -> int: return len(self.__registry)

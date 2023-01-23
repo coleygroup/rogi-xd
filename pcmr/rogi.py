@@ -86,7 +86,7 @@ def calc_fps(
     radius: int = 2,
     length: int = 2048,
 ) -> list[ExplicitBitVect]:
-    logging.info("Calculating fingerprints")
+    logger.info("Calculating fingerprints")
     if fp == Fingerprint.MORGAN:
         fps = [Chem.GetMorganFingerprintAsBitVect(m, radius=radius, nBits=length) for m in mols]
     elif fp == Fingerprint.TOPOLOGICAL:
@@ -131,7 +131,7 @@ def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
 
 def calc_distance_matrix(X: Optional[np.ndarray], fps: Optional[list[ExplicitBitVect]], smis: Optional[Iterable[str]], metric: Union[str, Metric, None], fp_config: FingerprintConfig = FingerprintConfig(), max_dist: Optional[float] = None):
     """Calculate the distance matrix of the input molecules
-    
+
     NOTE: see :func:`~pcmr.rogi.rogi` for details on the following arguments: `X`,
     `fps`, `smis`, `metric`, `fp_config`, and `max_dist`
 
@@ -157,7 +157,7 @@ def calc_distance_matrix(X: Optional[np.ndarray], fps: Optional[list[ExplicitBit
     elif smis is not None:
         smis = validate_and_canonicalize_smis(smis)
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
-        fps = calc_fps(mols, **fp_config)
+        fps = calc_fps(mols, **fp_config._asdict())
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
         D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
     else:
@@ -240,12 +240,10 @@ def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
 
 def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.ndarray, np.ndarray]:
     logger.info("Clustering...")
-
     Z = max_linkage(D)
     all_distance_thresholds = Z[:, 2]
 
-    # subsample distance_thresholds to avoid doing too many computations on
-    # distances that are virtually the same
+    logger.info(f"Subsampling with minimum step size of {min_dt:0.3f}")
     thresholds = []
     t_prev = -1
     for t in all_distance_thresholds:
@@ -255,6 +253,7 @@ def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.nd
         thresholds.append(t)
         t_prev = t
 
+    logger.info("Coarsening...")
     sds = [coarsened_sd(y, Z, t) for t in thresholds]
 
     # when num_clusters == num_data ==> stddev/skewness of dataset
@@ -281,9 +280,9 @@ def rogi(
     Parameters
     ----------
     y : ArrayLike
-        _description_
+        the property values
     normalize : bool, default=True
-        _description_,
+        whether to normalize the property values to the range [0, 1],
     X : Optional[np.ndarray], default=None
         Either (a) the precalculated input representations as a rank-2 matrix OR (b) the
         precalculated distance matrix (if using Metric.PRECOMPUTED) as a rank-1 (dense) or rank-2
@@ -297,9 +296,9 @@ def rogi(
         the distance metric to use or its string alias. If `None`, will choose an appropriate
         distance metric based on the representation supplied:
 
-        - `X`: Metric.EUCLIDEAN
-        - `fps`: Metric.TANIMOTO
-        - `smis`: Metric.TANIMOTO
+            1) `X`: `Metric.EUCLIDEAN`
+            2) `fps`: `Metric.TANIMOTO`
+            3) `smis`: `Metric.TANIMOTO`
 
     fp_config: FingerprintConfig, default=FingerprintConfig()
         the config to use for calculating fingerprints of the input SMILES strings, if necessary.
@@ -307,8 +306,8 @@ def rogi(
     min_dt : float, default=0.01
         the mimimum distance to use between threshold values when coarse graining the dataset,
     nboots : int, default=1
-        the number of bootstraps to use when calculating uncertainty. If `nboots <= 1`, no
-        bootstrapping will be performed
+        the number of samples to use when calculating uncertainty via bootstrapping.
+        If `nboots <= 1`, no bootstrapping will be performed
 
     Returns
     -------
@@ -328,6 +327,7 @@ def rogi(
     score: float = sds[0] - trapezoid(sds, thresholds)
 
     if nboots > 1:
+        logger.info(f"Bootstrapping with {nboots} samples")
         D_square = squareform(D)
         size = D_square.shape[0]
 
