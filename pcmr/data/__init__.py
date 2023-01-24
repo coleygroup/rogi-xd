@@ -1,1 +1,1 @@
-from .data import get_data
+from .composite import CompositeDataModule as data

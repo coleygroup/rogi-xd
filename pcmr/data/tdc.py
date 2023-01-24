@@ -36,6 +36,8 @@ class TdcDataModule(DataModule):
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
+        cls.check_dataset(dataset)
+        
         dataset_ = dataset.upper()
         if dataset_ in cls.__ADME_DATASETS:
             df: pd.DataFrame = ADME(dataset_, label_name=task).get_data("df")

@@ -24,6 +24,8 @@ class MoleculeNetDataModule(DataModule):
 
     @classmethod
     def get_full_dataset(cls, dataset) -> tuple[list[str], tuple[DiskDataset, ...]]:
+        cls.check_dataset(dataset)
+        
         dataset_ = dataset.upper()
         if dataset_ == "BACE":
             task_names, splits, _ = molnet.load_bace_regression()
@@ -51,12 +53,13 @@ class MoleculeNetDataModule(DataModule):
 
     @classmethod
     def get_tasks(cls, dataset: str) -> set[str]:
+        cls.check_dataset(dataset)
         tasks, _ = cls.get_full_dataset(dataset)
 
         return tasks
 
     @classmethod
-    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
+    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:        
         tasks, splits = cls.get_full_dataset(dataset)
         smis, Y = combine_splits(splits)
         try:

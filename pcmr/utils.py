@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import Enum, auto
 import functools
-import pdb
 from typing import Iterator, NamedTuple, Optional, Type, Union
 
 
@@ -22,7 +21,7 @@ class AutoName(Enum):
         try:
             return cls[name.upper()]
         except KeyError:
-            raise ValueError(f"Unsupported {cls.__name__} alias! got: {name}")
+            raise ValueError(f"Unsupported alias! got: {name}. expected one of: {cls.keys()}")
 
     @classmethod
     def keys(cls) -> list[str]:

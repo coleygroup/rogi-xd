@@ -71,8 +71,3 @@ class GuacaMolDataModule(DataModule):
         cls.__cache[dataset.upper()] = df
 
         return df
-
-    @classmethod
-    def check_dataset(cls, dataset):
-        if dataset.upper() not in cls.datasets:
-            raise ValueError(f"Invalid dataset! got: '{dataset}'. expected one of {cls.datasets}.")

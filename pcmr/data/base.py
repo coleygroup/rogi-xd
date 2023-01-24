@@ -81,3 +81,10 @@ class DataModule(ABC):
         ValueError
             if the input `task` is not associated the given `dataset`
         """
+
+    @classmethod
+    def check_dataset(cls, dataset):
+        if dataset.upper() not in cls.datasets:
+            raise ValueError(
+                f"Invalid dataset! got: '{dataset}'. expected one of {tuple(cls.datasets)}."
+            )
