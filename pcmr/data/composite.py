@@ -6,6 +6,7 @@ from pcmr.data.base import DataModule
 from pcmr.data.tdc import TdcDataModule
 from pcmr.data.guacamol import GuacaMolDataModule
 from pcmr.data.molnet import MoleculeNetDataModule
+from pcmr.exceptions import InvalidDatasetError
 
 
 class CompositeDataModule(DataModule):
@@ -23,17 +24,18 @@ class CompositeDataModule(DataModule):
 
     @classmethod
     def get_tasks(cls, dataset: str) -> set[str]:
-        cls.check_dataset(dataset)
-
-        return cls.__dset2module[dataset.upper()].get_tasks(dataset)
+        return cls._get_module(dataset).get_tasks(dataset)
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
-        cls.check_dataset(dataset)
-
-        dm = cls.__dset2module[dataset.upper()]
-
-        if task is not None and task not in dm.get_tasks(dataset):
-            raise ValueError(f"Invalid task! '{task}' is not a valid task for '{dataset}' dataset.")
+        dm = cls._get_module(dataset)
+        # dm.check_task(dataset, task)
 
         return dm.get_all_data(dataset, task)
+
+    @classmethod
+    def _get_module(cls, dataset) -> DataModule:
+        try:
+            return cls.__dset2module[dataset.upper()]
+        except KeyError:
+            raise InvalidDatasetError(dataset, cls.datasets)

@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pcmr.data.base import DataModule
+from pcmr.exceptions import InvalidDatasetError, InvalidTaskError
 
 
 def combine_splits(splits: tuple[DiskDataset, ...]) -> tuple[list[str], np.ndarray]:
@@ -23,9 +24,29 @@ class MoleculeNetDataModule(DataModule):
     __DATASETS = {"BACE", "CLEARANCE", "CLINTOX", "DELANEY", "FREESOLV", "LIPO", "PDBBIND"}
 
     @classmethod
-    def get_full_dataset(cls, dataset) -> tuple[list[str], tuple[DiskDataset, ...]]:
+    @property
+    def datasets(cls) -> set[str]:
+        return cls.__DATASETS
+
+    @classmethod
+    def get_tasks(cls, dataset: str) -> set[str]:
+        return cls._get_full_dataset(dataset)[0]
+
+    @classmethod
+    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:        
+        tasks, splits = cls._get_full_dataset(dataset)
+        smis, Y = combine_splits(splits)
+        try:
+            j = 0 if task is None else tasks.index(task)
+        except ValueError:
+            raise InvalidTaskError(task, dataset, tasks)
+
+        return pd.DataFrame(dict(smiles=smis, y=Y[:, j]))
+
+    @classmethod
+    def _get_full_dataset(cls, dataset) -> tuple[list[str], tuple[DiskDataset, ...]]:
         cls.check_dataset(dataset)
-        
+
         dataset_ = dataset.upper()
         if dataset_ == "BACE":
             task_names, splits, _ = molnet.load_bace_regression()
@@ -42,30 +63,6 @@ class MoleculeNetDataModule(DataModule):
         elif dataset_ == "PDBBIND":
             task_names, splits, _ = molnet.load_pdbbind(set="refined")
         else:
-            raise ValueError(f"Invalid MoleculeNet dataset! got: {dataset}")
+            raise InvalidDatasetError(dataset, cls.datasets)
 
         return task_names, splits
-
-    @classmethod
-    @property
-    def datasets(cls) -> set[str]:
-        return cls.__DATASETS
-
-    @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
-        cls.check_dataset(dataset)
-        tasks, _ = cls.get_full_dataset(dataset)
-
-        return tasks
-
-    @classmethod
-    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:        
-        tasks, splits = cls.get_full_dataset(dataset)
-        smis, Y = combine_splits(splits)
-        try:
-            j = 0 if task is None else tasks.index(task)
-        except ValueError:
-            raise ValueError(f"Invalid task! got: '{task}' but expected one of {tasks} or `None`!")
-        y = Y[:, j]
-
-        return pd.DataFrame(dict(smiles=smis, y=y))

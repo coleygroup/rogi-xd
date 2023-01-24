@@ -6,6 +6,8 @@ from typing import Iterable, Optional
 
 import pandas as pd
 
+from pcmr.exceptions import InvalidDatasetError, InvalidTaskError
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,8 +85,14 @@ class DataModule(ABC):
         """
 
     @classmethod
-    def check_dataset(cls, dataset):
+    def check_dataset(cls, dataset: str):
         if dataset.upper() not in cls.datasets:
-            raise ValueError(
-                f"Invalid dataset! got: '{dataset}'. expected one of {tuple(cls.datasets)}."
-            )
+            raise InvalidDatasetError(dataset, cls.datasets)
+    
+    @classmethod
+    def check_task(cls, dataset: str, task: Optional[str]):
+        if task is None:
+            return
+
+        if task not in (tasks := cls.get_tasks(dataset)):
+            raise InvalidTaskError(task, dataset, tasks)

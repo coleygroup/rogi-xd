@@ -57,8 +57,7 @@ class GuacaMolDataModule(DataModule):
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
         cls.check_dataset(dataset)
-        if task is not None:
-            raise ValueError(f"Invalid task! got: {task}. expected `None`")
+        cls.check_task(dataset, task)
 
         df = cls.__cache.get(dataset.upper())
         if df is not None:

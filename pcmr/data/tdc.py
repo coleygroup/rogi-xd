@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from typing import Optional
 
 import pandas as pd
@@ -6,6 +7,7 @@ from tdc.single_pred import ADME, Tox
 from tdc.utils import retrieve_label_name_list
 
 from pcmr.data.base import DataModule
+from pcmr.exceptions import InvalidDatasetError
 
 
 class TdcDataModule(DataModule):
@@ -36,12 +38,13 @@ class TdcDataModule(DataModule):
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
-        cls.check_dataset(dataset)
-        
         dataset_ = dataset.upper()
+        cls.check_task(dataset, task)
         if dataset_ in cls.__ADME_DATASETS:
-            df: pd.DataFrame = ADME(dataset_, label_name=task).get_data("df")
+            df: pd.DataFrame = ADME(dataset, label_name=task).get_data("df")
         elif dataset_ in cls.__TOX_DATASETS:
-            df: pd.DataFrame = Tox(dataset_, label_name=task).get_data("df")
+            df: pd.DataFrame = Tox(dataset, label_name=task).get_data("df")
+        else:
+            raise InvalidDatasetError(dataset, cls.datasets)
 
         return df.rename(columns={"Drug": "smiles", "Y": "y"})
