@@ -5,6 +5,8 @@ from enum import Enum, auto
 import functools
 from typing import Iterator, NamedTuple, Optional, Type, Union
 
+import torch
+
 
 class AutoName(Enum):
     def _generate_next_value_(name, start, count, last_values):
@@ -76,3 +78,7 @@ class ClassRegistry(Mapping[str, Type]):
 
     def __len__(self) -> int:
         return len(self.__registry)
+
+
+def select_device(device: Union[int, str, torch.device, None]):
+    return device or (torch.cuda.current_device() if torch.cuda.is_available() else "cpu")

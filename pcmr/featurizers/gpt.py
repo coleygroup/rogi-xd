@@ -6,6 +6,7 @@ import torch
 from transformers import pipeline
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from pcmr.utils import select_device
 
 
 @FeaturizerRegistry.register(alias="chemgpt")
@@ -15,7 +16,7 @@ class ChemGPTFeaturizer(FeaturizerBase):
     def __init__(
         self, batch_size: int = None, device: Union[int, str, torch.device, None] = None
     ) -> None:
-        device = device or "cuda" if torch.cuda.is_available() else "cpu"
+        device = select_device(device)
         self.fe = pipeline(
             "feature-extraction",
             model=self.CHEMGPT,
