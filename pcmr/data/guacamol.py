@@ -49,10 +49,10 @@ class GuacaMolDataModule(DataModule):
         return cls.__ORACLE_NAMES
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> Iterable[str]:
+    def get_tasks(cls, dataset: str) -> None:
         cls.check_dataset(dataset)
 
-        return []
+        return None
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:

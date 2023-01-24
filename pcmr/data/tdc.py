@@ -30,7 +30,7 @@ class TdcDataModule(DataModule):
         return {*cls.__ADME_DATASETS, *cls.__TOX_DATASETS}
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
+    def get_tasks(cls, dataset: str) -> list[str]:
         try:
             return retrieve_label_name_list(dataset)
         except KeyError:

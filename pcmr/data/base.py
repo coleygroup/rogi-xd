@@ -57,7 +57,7 @@ class DataModule(ABC):
     @classmethod
     @abstractmethod
     def get_tasks(cls, dataset: str) -> Iterable[str]:
-        """The tasks associated with the given dataset"""
+        """The tasks associated with the given dataset, if any"""
 
     @classmethod
     @abstractmethod
@@ -91,8 +91,8 @@ class DataModule(ABC):
     
     @classmethod
     def check_task(cls, dataset: str, task: Optional[str]):
-        if task is None:
+        tasks = cls.get_tasks(dataset)
+        if task in tasks or (task is None and len(tasks) < 2):
             return
 
-        if task not in (tasks := cls.get_tasks(dataset)):
-            raise InvalidTaskError(task, dataset, tasks)
+        raise InvalidTaskError(task, dataset, tasks)
