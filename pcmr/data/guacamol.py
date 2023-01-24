@@ -58,14 +58,10 @@ class GuacaMolDataModule(DataModule):
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
         cls.check_task(dataset, task)
 
-        df = cls.__cache.get(dataset.upper())
-        if df is not None:
-            return df
+        y = cls.__cache.get(dataset.upper())
+        if y is None:
+            oracle = Oracle(dataset)
+            y = oracle(cls.__smis)
+            cls.__cache[dataset.upper()] = y
 
-        oracle = Oracle(dataset)
-        y = oracle(cls.__smis)
-
-        df = pd.DataFrame(dict(smiles=cls.__smis, y=y))
-        cls.__cache[dataset.upper()] = df
-
-        return df
+        return pd.DataFrame(dict(smiles=cls.__smis, y=y))
