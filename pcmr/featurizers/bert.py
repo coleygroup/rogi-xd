@@ -4,11 +4,11 @@ import numpy as np
 import torch
 from transformers import pipeline
 
-from pcmr.featurizers.base import Featurizer, FeaturizerRegistry
+from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
 
 @FeaturizerRegistry.register(alias="chemberta")
-class ChemGPTFeaturizer(Featurizer):
+class ChemBERTaFeaturizer(FeaturizerBase):
     CHEMBERTA = "DeepChem/ChemBERTa-77M-MLM"
 
     def __init__(

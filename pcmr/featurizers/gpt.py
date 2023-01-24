@@ -5,11 +5,11 @@ import selfies as sf
 import torch
 from transformers import pipeline
 
-from pcmr.featurizers.base import Featurizer, FeaturizerRegistry
+from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
 
 @FeaturizerRegistry.register(alias="chemgpt")
-class ChemGPTFeaturizer(Featurizer):
+class ChemGPTFeaturizer(FeaturizerBase):
     CHEMGPT = "ncfrey/ChemGPT-1.2B"
 
     def __init__(

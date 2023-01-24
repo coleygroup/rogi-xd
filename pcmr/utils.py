@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import Enum, auto
 import functools
+import pdb
 from typing import Iterator, NamedTuple, Optional, Type, Union
 
 
@@ -50,7 +51,8 @@ class FingerprintConfig(NamedTuple):
 
 
 class ClassRegistry(Mapping[str, Type]):
-    __registry = {}
+    def __init__(self):
+        self.__registry = {}
 
     def register(self, cls=None, *, alias: Optional[str] = None):
         def actual_decorator(cls):
@@ -63,15 +65,12 @@ class ClassRegistry(Mapping[str, Type]):
 
             return cls_wrapper
 
-        if cls:
-            return actual_decorator(cls)
-
-        return actual_decorator
+        return actual_decorator(cls) if cls is not None else actual_decorator
 
     __call__ = register
 
     def __getitem__(self, key: str) -> Type:
-        self.__registry[key.lower()]
+        return self.__registry[key.lower()]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.__registry)
