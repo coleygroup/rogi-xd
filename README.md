@@ -10,11 +10,12 @@ conda env create -f environment.yml
 
 ### Manual
 _Note_: this is only recommended in the event that you'd like specify different package versions
-```
-conda create -n pcmr python=3.9
-pip install torch==1.13
-CUDA=cu117 # NOTE: this can be: "cpu", "cu116", or "cu117" depending on your CUDA version
-pip install torch-scatter torch-cluster torch-spline-conv -f https://data.pyg.org/whl/torch-1.13.1+${CUDA}.html
-pip install git+git+https://github.com/DeepGraphLearning/torchdrug
-pip install gt4sd
+```sh
+conda create -n -y pcmr python=3.9 && conda activate pcmr
+CUDA=cu117  #NOTE: this can be: "cpu", "cu116", or "cu117" depending on your device
+pip install torch==1.13 \
+  && pip install torch-scatter torch-cluster torch-spline-conv \
+      -f https://data.pyg.org/whl/torch-1.13.1+${CUDA}.html \
+  && pip install git+https://github.com/DeepGraphLearning/torchdrug \
+  && pip install .
 ```
