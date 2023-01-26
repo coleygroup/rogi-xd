@@ -1,5 +1,6 @@
 from itertools import chain
 import logging
+import pdb
 from typing import Iterable, Optional, Union
 import warnings
 
@@ -53,7 +54,7 @@ def calc_max_dist(X: np.ndarray, metric: Metric) -> float:
 
 def calc_distance_matrix_X(
     X: np.ndarray, metric: Metric, max_dist: Optional[float] = None
-) -> np.ndarray:
+) -> tuple[np.ndarray, np.ndarray]:
     if metric == Metric.PRECOMPUTED:
         logging.info("Using precomputed distance matrix")
         if X.ndim == 1:
@@ -65,6 +66,8 @@ def calc_distance_matrix_X(
 
         max_dist = max_dist or 1.0
     else:
+        mask = ~np.isnan(X).any(1)
+        X = X[mask]
         D: np.ndarray = pdist(X, metric.value)
         max_dist = max_dist or calc_max_dist(X, metric)
 
@@ -77,7 +80,7 @@ def calc_distance_matrix_X(
             f"Please ensure the provided 'max_dist' is correct. got: {max_dist:0.3f}"
         )
 
-    return D
+    return D, mask
 
 
 def calc_fps(
@@ -97,7 +100,7 @@ def calc_fps(
     return fps
 
 
-def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> np.ndarray:
+def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> tuple[np.ndarray, np.ndarray]:
     logger.info("Computing distance matrix...")
 
     if metric == Metric.TANIMOTO:
@@ -114,7 +117,7 @@ def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> np.ndarra
     sims = list(chain(*simss))
     S = np.array(sims)
 
-    return 1 - S
+    return 1 - S, np.ones(len(fps), bool)
 
 
 def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
@@ -154,23 +157,25 @@ def calc_distance_matrix(
     -------
     np.ndarray
         the upper triangular of the distance matrix as a 1-d vector
+    np.ndarray
+        the mask for inputs containing _at least_ 1 `nan` value 
     """
     if X is not None:
         metric = Metric.get(metric) if metric is not None else Metric.EUCLIDEAN
-        D = calc_distance_matrix_X(X, metric, max_dist)
+        D, mask = calc_distance_matrix_X(X, metric, max_dist)
     elif fps is not None:
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
-        D = calc_distance_matrix_fps(fps, metric)
+        D, mask = calc_distance_matrix_fps(fps, metric)
     elif smis is not None:
         smis = validate_and_canonicalize_smis(smis)
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
         fps = calc_fps(mols, **fp_config._asdict())
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
-        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
+        D, mask = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
     else:
         raise ValueError("args 'X', 'fps', and 'smis' were all `None`!")
 
-    return D
+    return D, mask
 
 
 def weighted_moment(
@@ -328,9 +333,13 @@ def rogi(
         y = safe_normalize(y)
     elif (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
-    D = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
 
-    thresholds, sds = coarse_grain(D, y, min_dt)
+    D, mask = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
+    y_ = y[mask]
+    if (n_invalid := len(y) - mask.sum()) > 0:
+        logger.info(f"Removed {n_invalid} input(s) with invalid features")
+
+    thresholds, sds = coarse_grain(D, y_, min_dt)
     score: float = sds[0] - trapezoid(sds, thresholds)
 
     if nboots > 1:
@@ -343,7 +352,7 @@ def rogi(
             idxs = np.random.choice(range(size), size=size, replace=True)
             D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
-            thresholds, sds = coarse_grain(D, y, min_dt)
+            thresholds, sds = coarse_grain(D, y_, min_dt)
             boot_score: float = sds[0] - trapezoid(sds, thresholds)
             boot_scores.append(boot_score)
 

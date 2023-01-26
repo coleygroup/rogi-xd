@@ -29,7 +29,6 @@ class CompositeDataModule(DataModule):
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
         dm = cls._get_module(dataset)
-        # dm.check_task(dataset, task)
 
         return dm.get_all_data(dataset, task)
 

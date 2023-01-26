@@ -1,6 +1,8 @@
+import pdb
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors
+from tqdm import tqdm
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
@@ -11,6 +13,6 @@ class DescriptorFeauturizer(FeaturizerBase):
 
     def __call__(self, smis):
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
-        xss = [[func(mol) for func in self.__DESC_FUNCS] for mol in mols]
-        
+        xss = [[func(mol) for func in self.__DESC_FUNCS] for mol in tqdm(mols)]
+
         return np.array(xss)
