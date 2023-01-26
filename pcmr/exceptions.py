@@ -3,9 +3,7 @@ from typing import Iterable
 
 class InvalidDatasetError(ValueError):
     def __init__(self, dataset: str, datasets: Iterable[str]) -> None:
-        super().__init__(
-            f"Invalid dataset! got: '{dataset}'. expected one of: {datasets}."
-        )
+        super().__init__(f"Invalid dataset! got: '{dataset}'. expected one of: {datasets}.")
 
 
 class InvalidTaskError(ValueError):

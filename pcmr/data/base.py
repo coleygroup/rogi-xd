@@ -88,7 +88,7 @@ class DataModule(ABC):
     def check_dataset(cls, dataset: str):
         if dataset.upper() not in cls.datasets:
             raise InvalidDatasetError(dataset, cls.datasets)
-    
+
     @classmethod
     def check_task(cls, dataset: str, task: Optional[str]):
         tasks = cls.get_tasks(dataset)

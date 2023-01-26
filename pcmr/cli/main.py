@@ -45,7 +45,7 @@ def calc_rogi(
 
 def main():
     logging.basicConfig(
-        format='%(asctime)s - %(levelname)s:%(name)s - %(message)s', level=logging.INFO
+        format="%(asctime)s - %(levelname)s:%(name)s - %(message)s", level=logging.INFO
     )
 
     parser = build_parser()
@@ -61,5 +61,5 @@ def main():
     df = pd.DataFrame(rows)
     print(df)
     df.to_csv(args.output, index=False)
-    
+
     logger.info(f"Saved output CSV to '{args.output}'")

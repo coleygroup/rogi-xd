@@ -7,6 +7,7 @@ from transformers import pipeline
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.utils import select_device
 
+
 @FeaturizerRegistry.register(alias="chemberta")
 class ChemBERTaFeaturizer(FeaturizerBase):
     CHEMBERTA = "DeepChem/ChemBERTa-77M-MLM"
@@ -24,8 +25,5 @@ class ChemBERTaFeaturizer(FeaturizerBase):
         )
         self.batch_size = batch_size
 
-
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         return torch.stack([H[0, 0, :] for H in self.fe(smis)]).numpy()
-
-    

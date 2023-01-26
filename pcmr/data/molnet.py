@@ -33,7 +33,7 @@ class MoleculeNetDataModule(DataModule):
         return cls._get_full_dataset(dataset)[0]
 
     @classmethod
-    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:        
+    def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
         tasks, splits = cls._get_full_dataset(dataset)
         smis, Y = combine_splits(splits)
         try:

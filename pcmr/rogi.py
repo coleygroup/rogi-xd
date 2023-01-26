@@ -100,7 +100,9 @@ def calc_fps(
     return fps
 
 
-def calc_distance_matrix_fps(fps, metric: Metric = Metric.TANIMOTO) -> tuple[np.ndarray, np.ndarray]:
+def calc_distance_matrix_fps(
+    fps, metric: Metric = Metric.TANIMOTO
+) -> tuple[np.ndarray, np.ndarray]:
     logger.info("Computing distance matrix...")
 
     if metric == Metric.TANIMOTO:
@@ -158,7 +160,7 @@ def calc_distance_matrix(
     np.ndarray
         the upper triangular of the distance matrix as a 1-d vector
     np.ndarray
-        the mask for inputs containing _at least_ 1 `nan` value 
+        the mask for inputs containing _at least_ 1 `nan` value
     """
     if X is not None:
         metric = Metric.get(metric) if metric is not None else Metric.EUCLIDEAN

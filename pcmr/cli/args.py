@@ -7,12 +7,7 @@ from pcmr.featurizers import FeaturizerRegistry
 
 
 class DatasetAndTaskAction(Action):
-    def __init__(
-        self,
-        *args,
-        choices: Iterable,
-        **kwargs
-    ):
+    def __init__(self, *args, choices: Iterable, **kwargs):
         super().__init__(*args, **kwargs)
         self._choices = set(choices)
 
@@ -21,7 +16,7 @@ class DatasetAndTaskAction(Action):
         parser: ArgumentParser,
         namespace: Namespace,
         values: Union[str, Sequence],
-        option_string: Optional[str] = None
+        option_string: Optional[str] = None,
     ):
         if isinstance(values, str):
             dataset, task = self.parse_value(values)
@@ -31,7 +26,7 @@ class DatasetAndTaskAction(Action):
             setattr(namespace, self.dest, datasets_tasks)
 
     def parse_value(self, value: str):
-        tokens = value.split('/')
+        tokens = value.split("/")
 
         if len(tokens) == 1:
             dataset = tokens[0]
@@ -45,19 +40,24 @@ class DatasetAndTaskAction(Action):
         task = task or None
         if self._choices and dataset not in self._choices:
             raise ArgumentError(self, f"invalid choice: 'dataset' must one of {self._choices}")
-        
+
         return dataset, task
 
 
 def build_parser():
     parser = ArgumentParser()
-    
+
     parser.add_argument(
-        "-f", "--featurizers",
-        type=lambda s: s.lower(), nargs="+", choices=FeaturizerRegistry.keys()
+        "-f",
+        "--featurizers",
+        type=lambda s: s.lower(),
+        nargs="+",
+        choices=FeaturizerRegistry.keys(),
     )
     parser.add_argument(
-        "--datasets-tasks", "--dt", "--datasets",
+        "--datasets-tasks",
+        "--dt",
+        "--datasets",
         action=DatasetAndTaskAction,
         nargs="+",
         choices=data.datasets,
