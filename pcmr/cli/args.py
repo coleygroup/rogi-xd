@@ -65,6 +65,8 @@ def build_parser():
     parser.add_argument("-r", "--repeats", type=int, default=1)
     parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
     parser.add_argument("-o", "--output", type=Path)
-    parser.add_argument("-b", "--batch-size", type=int, default=8)
+    parser.add_argument(
+        "-b", "--batch-size", type=int, help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size"
+    )
 
     return parser
