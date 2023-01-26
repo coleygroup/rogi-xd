@@ -10,7 +10,7 @@ from pcmr.exceptions import InvalidDatasetError
 
 
 class CompositeDataModule(DataModule):
-    __MODULES: list[DataModule] = [TdcDataModule, GuacaMolDataModule, MoleculeNetDataModule]
+    __MODULES: list[DataModule] = [TdcDataModule, GuacaMolDataModule]
     __dset2module = {dset: module for module in __MODULES for dset in module.datasets}
 
     @classmethod

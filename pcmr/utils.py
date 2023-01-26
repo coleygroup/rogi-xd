@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import Enum, auto
 import functools
-from typing import Iterator, NamedTuple, Optional, Type, Union
+from typing import Iterable, Iterator, NamedTuple, Optional, Type, Union
 
 import torch
 
@@ -55,10 +55,17 @@ class ClassRegistry(Mapping[str, Type]):
     def __init__(self):
         self.__registry = {}
 
-    def register(self, cls=None, *, alias: Optional[str] = None):
+    def register(self, cls=None, *, alias: Union[str, Iterable[str], None] = None):
         def actual_decorator(cls):
-            key = alias or cls.__name__.lower()
-            self.__registry[key] = cls
+            if alias is None:
+                keys = [cls.__name__.lower()]
+            elif isinstance(alias, str):
+                keys = [alias]
+            else:
+                keys = alias
+                
+            for k in keys:
+                self.__registry[k] = cls
 
             @functools.wraps(cls)
             def cls_wrapper(*args, **kwargs):
