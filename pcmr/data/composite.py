@@ -5,8 +5,9 @@ import pandas as pd
 from pcmr.data.base import DataModule
 from pcmr.data.tdc import TdcDataModule
 from pcmr.data.guacamol import GuacaMolDataModule
-from pcmr.data.molnet import MoleculeNetDataModule
 from pcmr.exceptions import InvalidDatasetError
+
+# from pcmr.data.molnet import MoleculeNetDataModule
 
 
 class CompositeDataModule(DataModule):

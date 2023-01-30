@@ -1,6 +1,5 @@
 from itertools import chain
 import logging
-import pdb
 from typing import Iterable, Optional, Union
 import warnings
 
@@ -128,7 +127,7 @@ def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
         try:
             c_smi = Chem.CanonSmiles(smi)
             canon_smis.append(c_smi)
-        except:
+        except:  # noqa: E722
             raise ValueError(f"Invalid SMILES: {smi}")
 
     return canon_smis
@@ -338,8 +337,8 @@ def rogi(
 
     D, mask = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
     y_ = y[mask]
-    if (n_invalid := len(y) - mask.sum()) > 0:
-        logger.info(f"Removed {n_invalid} input(s) with invalid features")
+    # if (n_invalid := len(y) - mask.sum()) > 0:
+    #     logger.info(f"Removed {n_invalid} input(s) with invalid features")
 
     thresholds, sds = coarse_grain(D, y_, min_dt)
     score: float = sds[0] - trapezoid(sds, thresholds)

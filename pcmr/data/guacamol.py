@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable, Optional
+from typing import Optional
 
 import pandas as pd
 from tdc import Oracle

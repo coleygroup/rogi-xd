@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from enum import Enum, auto
 import functools
-from typing import Iterable, Iterator, NamedTuple, Optional, Type, Union
+from typing import Iterable, Iterator, NamedTuple, Type, Union
 
 import torch
 
