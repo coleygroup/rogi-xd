@@ -15,3 +15,6 @@ class DescriptorFeauturizer(FeaturizerBase):
         xss = [[func(mol) for func in self.__DESC_FUNCS] for mol in tqdm(mols)]
 
         return np.array(xss)
+        
+    def __str__(self) -> str:
+        return "descriptor"

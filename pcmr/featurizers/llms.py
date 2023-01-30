@@ -38,6 +38,7 @@ class HuggingFaceFeaturizer(FeaturizerBase):
             device=select_device(device),
             framework="pt",
             return_tensors=True,
+            **dict(truncation=True)
         )
         self.fe.tokenizer.padding_size = "right"
 
@@ -68,7 +69,10 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
     DEFAULT_BATCH_SIZE = 32
     CLASSIFICATION_TOKEN_IDX = 0
 
+    def __str__(self) -> str:
+        return "chemberta"
 
+   
 @FeaturizerRegistry.register(alias="chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
     CHEMGPT = "ncfrey/ChemGPT-1.2B"
@@ -79,3 +83,6 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizer):
         super().__init__(*args, **kwargs)
         self.fe.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
         self.fe.tokenizer.padding_size = "left"
+
+    def __str__(self) -> str:
+        return "chemgpt"
