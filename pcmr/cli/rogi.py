@@ -12,9 +12,8 @@ from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
 
-from pcmr.cli.args import DatasetAndTaskAction
 from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import RogiCalculationResult
+from pcmr.cli.utils import RogiCalculationResult, DatasetAndTaskAction
 
 logger = logging.getLogger(__name__)
 
@@ -69,11 +68,14 @@ class RogiSubcommand(Subcommand):
         parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
         parser.add_argument("-o", "--output", type=Path)
         parser.add_argument(
-            "-b", "--batch-size", type=int, help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size"
+            "-b",
+            "--batch-size",
+            type=int,
+            help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
         )
 
         return parser
-    
+
     @staticmethod
     def func(args: Namespace):
         rows = []

@@ -63,7 +63,7 @@ class ClassRegistry(Mapping[str, Type]):
                 keys = [alias]
             else:
                 keys = alias
-                
+
             for k in keys:
                 self.__registry[k] = cls
 

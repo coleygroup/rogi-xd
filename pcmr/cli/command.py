@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from argparse import ArgumentParser, _SubParsersAction, Namespace
 from typing import Optional
 
+
 class Subcommand(ABC):
     COMMAND: str
     HELP: Optional[str] = None
@@ -12,7 +13,7 @@ class Subcommand(ABC):
         cls.add_args(parser).set_defaults(func=cls.func)
 
         return parser
-    
+
     @classmethod
     @abstractmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
