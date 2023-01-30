@@ -1,4 +1,4 @@
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, FileType, Namespace
 from itertools import repeat
 import logging
 from pathlib import Path
@@ -13,22 +13,21 @@ from pcmr.rogi import rogi
 from pcmr.utils import Metric
 
 from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import RogiCalculationResult, DatasetAndTaskAction
+from pcmr.cli.utils import RogiCalculationResult, dataset_and_task
 
 logger = logging.getLogger(__name__)
 
 
 def calc_rogi(
-    featurizer: str, dataset: str, task: Optional[str], N: int, batch_size: int, repeats: int
+    f: FeaturizerBase, dataset: str, task: Optional[str], N: int, repeats: int
 ) -> list[RogiCalculationResult]:
-    f: FeaturizerBase = FeaturizerRegistry[featurizer]()
     df = data.get_data(dataset, task, N)
 
     X = f(df.smiles.tolist())
     score, _ = rogi(df.y.tolist(), True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
     n_valid = len(X) - np.isnan(X).any(1).sum(0)
 
-    result = RogiCalculationResult(featurizer, dataset, task, n_valid, score)
+    result = RogiCalculationResult(f, dataset, task, n_valid, score)
     if len(df) < N:
         results = list(repeat(result, repeats))
     else:
@@ -39,7 +38,7 @@ def calc_rogi(
             X = f(df.smiles.tolist())
             score, _ = rogi(df.y.tolist(), True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
             n_valid = len(X) - np.isnan(X).any(1).sum(0)
-            results.append(RogiCalculationResult(featurizer, dataset, task, n_valid, score))
+            results.append(RogiCalculationResult(f, dataset, task, n_valid, score))
 
     return results
 
@@ -49,20 +48,21 @@ class RogiSubcommand(Subcommand):
 
     @classmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
+        parser.add_argument("-i", "--input", type=FileType("r"))
+        parser.add_argument(
+            "--datasets-tasks",
+            "--dt",
+            "--datasets",
+            type=dataset_and_task,
+            nargs="+",
+            default=list(),
+        )
         parser.add_argument(
             "-f",
             "--featurizers",
             type=lambda s: s.lower(),
             nargs="+",
             choices=FeaturizerRegistry.keys(),
-        )
-        parser.add_argument(
-            "--datasets-tasks",
-            "--dt",
-            "--datasets",
-            action=DatasetAndTaskAction,
-            nargs="+",
-            choices=data.datasets,
         )
         parser.add_argument("-r", "--repeats", type=int, default=1)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
@@ -78,12 +78,14 @@ class RogiSubcommand(Subcommand):
 
     @staticmethod
     def func(args: Namespace):
+        if args.input is not None:
+            args.datasets_tasks.extend([dataset_and_task(line.strip()) for line in args.input])
+
         rows = []
-        for featurizer in args.featurizers:
-            for dataset, task in args.datasets_tasks:
-                results = calc_rogi(
-                    featurizer, dataset, task, args.N, args.batch_size, args.repeats
-                )
+        for f in args.featurizers:
+            f = FeaturizerRegistry[f](args.batch_size)
+            for d, t in args.datasets_tasks:
+                results = calc_rogi(f, d, t, args.N, args.repeats)
                 rows.extend(results)
 
         df = pd.DataFrame(rows)
