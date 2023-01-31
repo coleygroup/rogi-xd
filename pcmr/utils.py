@@ -87,5 +87,10 @@ class ClassRegistry(Mapping[str, Type]):
         return len(self.__registry)
 
 
+class flist(list):
+    def __format__(self, format_spec):
+        return f'[{", ".join(f"{i:{format_spec}}" for i in self)}]'
+
+
 def select_device(device: Union[int, str, torch.device, None]):
     return device or (torch.cuda.current_device() if torch.cuda.is_available() else "cpu")

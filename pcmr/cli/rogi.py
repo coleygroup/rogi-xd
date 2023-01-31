@@ -2,7 +2,8 @@ from argparse import ArgumentParser, FileType, Namespace
 from itertools import repeat
 import logging
 from pathlib import Path
-from typing import Optional
+import pdb
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -11,34 +12,36 @@ from pcmr.data import data
 from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
-
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import RogiCalculationResult, dataset_and_task
 
 logger = logging.getLogger(__name__)
 
 
-def calc_rogi(
-    f: FeaturizerBase, dataset: str, task: Optional[str], N: int, repeats: int
-) -> list[RogiCalculationResult]:
-    df = data.get_data(dataset, task, N)
-
-    X = f(df.smiles.tolist())
-    score, _ = rogi(df.y.tolist(), True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+def _calc_rogi(f, smis: Iterable[str], y: Iterable[float]):
+    # pdb.set_trace()
+    X = f(smis)
+    score, _ = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
     n_valid = len(X) - np.isnan(X).any(1).sum(0)
 
-    result = RogiCalculationResult(f, dataset, task, n_valid, score)
-    if len(df) < N:
-        results = list(repeat(result, repeats))
-    else:
-        results = [result]
-        for _ in range(repeats - 1):
-            df = data.get_data(dataset, task, N)
+    return score, n_valid
 
-            X = f(df.smiles.tolist())
-            score, _ = rogi(df.y.tolist(), True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
-            n_valid = len(X) - np.isnan(X).any(1).sum(0)
+
+def calc_rogi(
+    f: FeaturizerBase, dataset: str, task: Optional[str], n: int, repeats: int
+) -> list[RogiCalculationResult]:
+    df = data.get_all_data(dataset, task)
+    if len(df) > n:
+        logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
+        results = []
+        for _ in range(repeats):
+            df_sample = df.sample(n)
+            score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
             results.append(RogiCalculationResult(f, dataset, task, n_valid, score))
+    else:
+        score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
+        result = RogiCalculationResult(f, dataset, task, n_valid, score)
+        results = list(repeat(result, repeats))
 
     return results
 
@@ -73,7 +76,7 @@ class RogiSubcommand(Subcommand):
             type=int,
             help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
         )
-
+        
         return parser
 
     @staticmethod
@@ -85,8 +88,15 @@ class RogiSubcommand(Subcommand):
         for f in args.featurizers:
             f = FeaturizerRegistry[f](args.batch_size)
             for d, t in args.datasets_tasks:
-                results = calc_rogi(f, d, t, args.N, args.repeats)
-                rows.extend(results)
+                logger.info(f"running dataset/task={d}/{t}, features={f}")
+                try:
+                    results = calc_rogi(f, d, t, args.N, args.repeats)
+                    rows.extend(results)
+                except FloatingPointError as e:
+                    logger.error(
+                        f"ROGI calculation failed! dataset/task={d}/{t}, features={f}. Skipping..."
+                    )
+                    logger.error(e)
 
         df = pd.DataFrame(rows)
         print(df)
