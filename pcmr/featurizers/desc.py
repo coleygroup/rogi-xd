@@ -1,3 +1,4 @@
+from typing import Iterable, Optional
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Descriptors
@@ -5,14 +6,26 @@ from tqdm import tqdm
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
+DEFAULT_DESCRIPTORS = [
+    'MolWt', 'FractionCSP3', 'NumHAcceptors', 'NumHDonors', 'NOCount', 'NHOHCount',
+    'NumAliphaticRings', 'NumAliphaticHeterocycles', 'NumAromaticHeterocycles',
+    'NumAromaticRings', 'NumRotatableBonds', 'TPSA', 'qed', 'MolLogP'
+]
+
 
 @FeaturizerRegistry.register(alias="descriptor")
 class DescriptorFeauturizer(FeaturizerBase):
-    __DESC_NAMES, __DESC_FUNCS = zip(*Descriptors.descList)
+    def __init__(self, names: Optional[Iterable[str]] = None, **kwargs):
+        self.names = set(names or DEFAULT_DESCRIPTORS)
+        self.__funcs = [
+            func for name, func in Descriptors.descList if name in self.names
+        ]
+
+        super().__init__(**kwargs)
 
     def __call__(self, smis):
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
-        xss = [[func(mol) for func in self.__DESC_FUNCS] for mol in tqdm(mols)]
+        xss = [[func(mol) for func in self.__funcs] for mol in tqdm(mols)]
 
         return np.array(xss)
         
