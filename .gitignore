@@ -160,6 +160,10 @@ cython_debug/
 #.idea/
 
 pcmr/_version.py
+*.ipynb
+*.csv
+*.pkl
+*.txt
 data/*
 oracle
 .vscode
