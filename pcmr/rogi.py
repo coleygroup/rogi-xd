@@ -1,5 +1,6 @@
 from itertools import chain
 import logging
+import pdb
 from typing import Iterable, Optional, Union
 import warnings
 
@@ -11,17 +12,11 @@ from rdkit.DataStructs import ExplicitBitVect, BulkTanimotoSimilarity, BulkDiceS
 from scipy.cluster.hierarchy import fcluster
 from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
+from sklearn.preprocessing import MinMaxScaler
 
-from pcmr.utils import Fingerprint, FingerprintConfig, Metric
+from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric
 
 logger = logging.getLogger(__name__)
-
-
-def safe_normalize(x: np.ndarray, eps: float = 1e-6) -> np.ndarray:
-    if x.max() - x.min() > eps:
-        return (x - x.min()) / (x.max() - x.min())
-
-    return x - x.min()
 
 
 def unsquareform(A: np.ndarray) -> np.ndarray:
@@ -29,30 +24,31 @@ def unsquareform(A: np.ndarray) -> np.ndarray:
     return A[np.triu_indices(A.shape[0], k=1)]
 
 
-def calc_max_dist(X: np.ndarray, metric: Metric) -> float:
+def estimate_max_dist(X: np.ndarray, metric: Metric) -> float:
     bounds = np.stack([X.min(0), X.max(0)])
-    ranges = np.ptp(bounds, 0)
+    range_ = bounds[1] - bounds[0]
 
+    logger.debug("Estimating max dist")
     if metric == Metric.EUCLIDEAN:
-        max_dist = np.sqrt(np.sum(ranges**2))
+        d_max = np.sqrt(np.sum(range_**2))
     elif metric == Metric.CITYBLOCK:
-        max_dist = np.sum(ranges)
+        d_max = np.sum(range_)
     elif metric == Metric.COSINE:
         # in scipy pdist, 1-cosine is returned so that \in [0,2]
-        max_dist = 2.0
+        d_max = 2.0
     elif metric == Metric.MAHALANOBIS:
         # more general approach that would work for other metrics too excluding e.g. cosine
         CV = np.atleast_2d(np.cov(X.astype(np.double, copy=False).T))
         VI = np.linalg.inv(CV).T.copy()
-        max_dist = pdist(bounds, metric="mahalanobis", VI=VI)[0]
+        d_max = pdist(bounds, metric="mahalanobis", VI=VI)[0]
     else:
         raise ValueError(f"Invalid metric! got: {metric.value}")
 
-    return max_dist
+    return d_max
 
 
 def calc_distance_matrix_X(
-    X: np.ndarray, metric: Metric, max_dist: Optional[float] = None
+    X: np.ndarray, metric: Metric, d_max: Optional[float] = None
 ) -> tuple[np.ndarray, np.ndarray]:
     if metric == Metric.PRECOMPUTED:
         logging.info("Using precomputed distance matrix")
@@ -61,22 +57,24 @@ def calc_distance_matrix_X(
         elif X.ndim == 2:
             D = unsquareform(X)
         else:
-            raise ValueError(f"Precomputed distance matrix have have rank {{1, 2}}. got: {X.ndim}")
+            raise ValueError(f"Precomputed distance matrix must have rank {{1, 2}}. got: {X.ndim}")
 
-        max_dist = max_dist or 1.0
+        d_max_ = d_max or 1.0
     else:
-        mask = ~np.isnan(X).any(1)
+        pdb.set_trace()
+        mask = np.isfinite(X).all(1)
         X = X[mask]
+        X = MinMaxScaler().fit_transform(X)
         D: np.ndarray = pdist(X, metric.value)
-        max_dist = max_dist or calc_max_dist(X, metric)
+        d_max_ = d_max or estimate_max_dist(X, metric)
 
     # Scaling distances only normalizes the integration domain
-    D = D / max_dist
+    D = D / d_max_
 
     if (D > 1.0).any():
         raise ValueError(
             "Pairwise distance matrix is not normalized! "
-            f"Please ensure the provided 'max_dist' is correct. got: {max_dist:0.3f}"
+            f"Please ensure the provided 'd_max' is correct. got: {d_max:0.3f}"
         )
 
     return D, mask
@@ -252,11 +250,11 @@ def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
 
 
 def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.ndarray, np.ndarray]:
-    logger.info("Clustering...")
+    logger.debug("Clustering...")
     Z = max_linkage(D)
     all_distance_thresholds = Z[:, 2]
 
-    logger.info(f"Subsampling with minimum step size of {min_dt:0.3f}")
+    logger.debug(f"Subsampling with minimum step size of {min_dt:0.3f}")
     thresholds = []
     t_prev = -1
     for t in all_distance_thresholds:
@@ -266,7 +264,7 @@ def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.nd
         thresholds.append(t)
         t_prev = t
 
-    logger.info("Coarsening...")
+    logger.debug(f"Coarsening with thresholds {flist(thresholds):0.3f}")
     sds = [coarsened_sd(y, Z, t) for t in thresholds]
 
     # when num_clusters == num_data ==> stddev/skewness of dataset
@@ -331,7 +329,7 @@ def rogi(
     """
     y = np.array(y)
     if normalize:
-        y = safe_normalize(y)
+        y = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
     elif (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
 
@@ -344,7 +342,7 @@ def rogi(
     score: float = sds[0] - trapezoid(sds, thresholds)
 
     if nboots > 1:
-        logger.info(f"Bootstrapping with {nboots} samples")
+        logger.debug(f"Bootstrapping with {nboots} samples")
         D_square = squareform(D)
         size = D_square.shape[0]
 
