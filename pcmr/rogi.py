@@ -1,6 +1,5 @@
 from itertools import chain
 import logging
-import pdb
 from typing import Iterable, Optional, Union
 import warnings
 
@@ -28,7 +27,6 @@ def estimate_max_dist(X: np.ndarray, metric: Metric) -> float:
     bounds = np.stack([X.min(0), X.max(0)])
     range_ = bounds[1] - bounds[0]
 
-    logger.debug("Estimating max dist")
     if metric == Metric.EUCLIDEAN:
         d_max = np.sqrt(np.sum(range_**2))
     elif metric == Metric.CITYBLOCK:
@@ -44,6 +42,7 @@ def estimate_max_dist(X: np.ndarray, metric: Metric) -> float:
     else:
         raise ValueError(f"Invalid metric! got: {metric.value}")
 
+    logger.debug(f"Estimated max dist: {d_max:0.3f}")
     return d_max
 
 
@@ -61,10 +60,8 @@ def calc_distance_matrix_X(
 
         d_max_ = d_max or 1.0
     else:
-        pdb.set_trace()
         mask = np.isfinite(X).all(1)
         X = X[mask]
-        X = MinMaxScaler().fit_transform(X)
         D: np.ndarray = pdist(X, metric.value)
         d_max_ = d_max or estimate_max_dist(X, metric)
 

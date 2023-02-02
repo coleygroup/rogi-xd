@@ -167,3 +167,4 @@ pcmr/_version.py
 data/*
 oracle
 .vscode
+*.pdf

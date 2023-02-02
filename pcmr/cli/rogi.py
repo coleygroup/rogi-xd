@@ -2,7 +2,6 @@ from argparse import ArgumentParser, FileType, Namespace
 from itertools import repeat
 import logging
 from pathlib import Path
-import pdb
 from typing import Iterable, Optional
 
 import numpy as np
@@ -19,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 def _calc_rogi(f, smis: Iterable[str], y: Iterable[float]):
-    # pdb.set_trace()
     X = f(smis)
     score, _ = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
     n_valid = len(X) - np.isnan(X).any(1).sum(0)
@@ -30,6 +28,7 @@ def _calc_rogi(f, smis: Iterable[str], y: Iterable[float]):
 def calc_rogi(
     f: FeaturizerBase, dataset: str, task: Optional[str], n: int, repeats: int
 ) -> list[RogiCalculationResult]:
+    dt = f"{dataset}/{task}"
     df = data.get_all_data(dataset, task)
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
@@ -37,10 +36,10 @@ def calc_rogi(
         for _ in range(repeats):
             df_sample = df.sample(n)
             score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
-            results.append(RogiCalculationResult(f, dataset, task, n_valid, score))
+            results.append(RogiCalculationResult(f, dt, n_valid, score))
     else:
         score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
-        result = RogiCalculationResult(f, dataset, task, n_valid, score)
+        result = RogiCalculationResult(f, dt, n_valid, score)
         results = list(repeat(result, repeats))
 
     return results
