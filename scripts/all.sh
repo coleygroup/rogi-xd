@@ -6,6 +6,5 @@ repeats=${5:-5}
 
 logfile=logs/`date +%FT%H:%M:%S`.log
 mkdir -p `dirname $logfile`
-echo $logfile
 
 pcmr -vvvv --log $logfile rogi -o $output -f ${featurizers} -N$N --input ${input} -r $repeats

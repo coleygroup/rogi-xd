@@ -1,4 +1,4 @@
-from typing import Optional, Sequence, Union
+from typing import Sequence, Union
 import warnings
 
 import pytorch_lightning as pl
@@ -9,7 +9,6 @@ from torch.nn.utils import rnn
 
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
-from pcmr.models.vae.regularizers import DummyRegularizer
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, DummyScheduler
 from pcmr.models.vae.utils import reconstruction_accuracy
 
