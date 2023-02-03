@@ -17,7 +17,7 @@ def main():
     ListSubcommand.add(subparsers)
     RogiSubcommand.add(subparsers)
     TrainSubcommand.add(subparsers)
-    
+
     args = parser.parse_args()
 
     LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
@@ -26,8 +26,8 @@ def main():
     logging.basicConfig(
         filename=args.logfile,
         format="%(asctime)s - %(levelname)s:%(name)s - %(message)s",
-        level=log_level
+        level=log_level,
     )
-    
+
     logger.info(f"Running with args: {args}")
     args.func(args)

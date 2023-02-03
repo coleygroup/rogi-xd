@@ -9,9 +9,20 @@ from tqdm import tqdm
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
 DEFAULT_DESCRIPTORS = [
-    'MolWt', 'FractionCSP3', 'NumHAcceptors', 'NumHDonors', 'NOCount', 'NHOHCount',
-    'NumAliphaticRings', 'NumAliphaticHeterocycles', 'NumAromaticHeterocycles',
-    'NumAromaticRings', 'NumRotatableBonds', 'TPSA', 'qed', 'MolLogP'
+    "MolWt",
+    "FractionCSP3",
+    "NumHAcceptors",
+    "NumHDonors",
+    "NOCount",
+    "NHOHCount",
+    "NumAliphaticRings",
+    "NumAliphaticHeterocycles",
+    "NumAromaticHeterocycles",
+    "NumAromaticRings",
+    "NumRotatableBonds",
+    "TPSA",
+    "qed",
+    "MolLogP",
 ]
 
 
@@ -20,10 +31,8 @@ class DescriptorFeauturizer(FeaturizerBase):
     def __init__(self, names: Optional[Iterable[str]] = None, scale: bool = True, **kwargs):
         self.names = set(names or DEFAULT_DESCRIPTORS)
         self.scale = scale
-        
-        self.__funcs = [
-            func for name, func in Descriptors.descList if name in self.names
-        ]
+
+        self.__funcs = [func for name, func in Descriptors.descList if name in self.names]
 
         super().__init__(**kwargs)
 
@@ -33,6 +42,6 @@ class DescriptorFeauturizer(FeaturizerBase):
         X = np.array(xss)
 
         return MinMaxScaler().fit_transform(X) if self.scale else X
-        
+
     def __str__(self) -> str:
         return "descriptor"

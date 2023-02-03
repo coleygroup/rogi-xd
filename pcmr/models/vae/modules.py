@@ -31,7 +31,7 @@ class CharEncoder(nn.Module):
             d_emb, d_h, n_layers, batch_first=True, dropout=dropout, bidirectional=bidir
         )
         d_h_rnn = 2 * d_h if bidir else d_h
-        
+
         self.regularizer = regularizer or VariationalRegularizer(d_z)
         self.regularizer.setup(d_h_rnn)
 
@@ -81,7 +81,7 @@ class CharDecoder(nn.Module):
         self.emb = embedding
         self.d_z = d_z
         self.d_v = embedding.num_embeddings
-        
+
         self.z2h = nn.Linear(self.d_z, d_h)
         self.rnn = nn.GRU(self.emb.embedding_dim, d_h, n_layers, batch_first=True, dropout=dropout)
         self.h2v = nn.Linear(d_h, self.d_v)

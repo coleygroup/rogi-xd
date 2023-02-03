@@ -38,7 +38,7 @@ class HuggingFaceFeaturizer(FeaturizerBase):
             device=select_device(device),
             framework="pt",
             return_tensors=True,
-            **dict(truncation=True)
+            **dict(truncation=True),
         )
         self.fe.tokenizer.padding_size = "right"
 
@@ -72,7 +72,7 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
     def __str__(self) -> str:
         return "chemberta"
 
-   
+
 @FeaturizerRegistry.register(alias="chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
     CHEMGPT = "ncfrey/ChemGPT-1.2B"

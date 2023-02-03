@@ -75,7 +75,7 @@ class RogiSubcommand(Subcommand):
             type=int,
             help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
         )
-        
+
         return parser
 
     @staticmethod

@@ -10,7 +10,6 @@ from torch.nn.utils import rnn
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, DummyScheduler
-from pcmr.models.vae.utils import reconstruction_accuracy
 
 warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarning)
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
@@ -86,7 +85,7 @@ class LitVAE(pl.LightningModule):
     def on_train_start(self):
         self.v_reg.i = 0
 
-    def training_step(self, batch: tuple, batch_idx) -> Tensor:
+    def training_step(self, batch: Sequence[Tensor], batch_idx) -> Tensor:
         xs = batch
 
         Z, l_reg = self.encoder.forward_step(xs)
@@ -103,7 +102,7 @@ class LitVAE(pl.LightningModule):
 
         return l_rec + self.v_reg.v * l_reg
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: Sequence[Tensor], batch_idx):
         xs = batch
 
         Z, l_reg = self.encoder.forward_step(xs)
@@ -114,7 +113,7 @@ class LitVAE(pl.LightningModule):
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
         acc = sum(map(torch.equal, zip(xs, self.reconstruct(xs))))
-        
+
         return l_rec, l_reg, acc
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx=0) -> Tensor:

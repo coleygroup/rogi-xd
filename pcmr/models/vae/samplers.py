@@ -7,7 +7,7 @@ from torch.distributions import Distribution, Categorical
 class Sampler(nn.Module):
     """A `Sampler` defines the sampling operation from a collection of unnormalized probabilities
     ("logits")"""
-    
+
     def forward(self, logits: Tensor) -> Tensor:
         """Sample an index from last dimension of the input tensor
 
@@ -15,7 +15,7 @@ class Sampler(nn.Module):
         ----------
         logits : Tensor
             a tensor of shape `... x d` containing unnormalized probabilities
-        
+
         Returns
         --------
         Tensor
@@ -26,7 +26,7 @@ class Sampler(nn.Module):
     @abstractmethod
     def sample(self, probs: Tensor) -> Tensor:
         """This does the same as :meth:`~.forward` but for normalized probablities.
-        
+
         Depending on the subclass implementation, this may raise an error if the probabilities are not normalized
         """
 
@@ -53,9 +53,9 @@ class NoisySampler(Sampler):
     def __init__(self, sampler: Sampler, noise: Distribution):
         self.sampler = sampler
         self.noise = noise
-    
+
     def forward(self, logits: Tensor) -> Tensor:
         return self.sample(logits.softmax(-1))
-    
+
     def sample(self, probs: Tensor) -> Tensor:
         return self.sampler.sample(probs + self.noise.sample(probs.shape))

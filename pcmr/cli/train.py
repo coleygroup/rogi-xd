@@ -44,7 +44,7 @@ def fuzzy_lookup(choices: list[str]) -> Callable[[str], str]:
             return fuzzy_search(choice, choices)
         except ValueError:
             return ValueError(f"Invalid choice! '{choice}' is not in possible choices: {choices}")
-    
+
     return fun
 
 
@@ -55,13 +55,23 @@ class TrainSubcommand(Subcommand):
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
         parser.add_argument("-o", "--output", help="where to save")
         group = parser.add_mutually_exclusive_group(required=True)
-        group.add_argument("-i", "--input", type=Path, help="a plaintext file containing one SMILES string per line. Mutually exclusive with the '--dataset' argument.")
         group.add_argument(
-            "-d", "--dataset", type=fuzzy_lookup(DATASETS), choices=DATASETS, help="the TDC molecule generation dataset to train on. For more details, see https://tdcommons.ai/generation_tasks/molgen. Mutually exclusive with the '--input' argument")
+            "-i",
+            "--input",
+            type=Path,
+            help="a plaintext file containing one SMILES string per line. Mutually exclusive with the '--dataset' argument.",
+        )
+        group.add_argument(
+            "-d",
+            "--dataset",
+            type=fuzzy_lookup(DATASETS),
+            choices=DATASETS,
+            help="the TDC molecule generation dataset to train on. For more details, see https://tdcommons.ai/generation_tasks/molgen. Mutually exclusive with the '--input' argument",
+        )
         parser.add_argument(
             "-N",
             type=int,
-            help="the number of SMILES strings to subsample from _all_ supplied SMILES strings (i.e., from _both_ input sources)"
+            help="the number of SMILES strings to subsample from _all_ supplied SMILES strings (i.e., from _both_ input sources)",
         )
         parser.add_argument("-m", "--model", type=ModelType.get, choices=list(ModelType))
 
@@ -70,23 +80,23 @@ class TrainSubcommand(Subcommand):
     @staticmethod
     def func(args: Namespace):
         if args.input:
-            smis = (args.input.read_text().splitlines())
+            smis = args.input.read_text().splitlines()
         else:
-            smis =[MolGen(args.dataset).get_data().smiles.tolist()]
+            smis = [MolGen(args.dataset).get_data().smiles.tolist()]
 
         if args.N:
             smis = choices(smis, k=args.N)
 
         if len(smis) == 0:
             raise ValueError("No smiles strings were supplied!")
-        
+
         if args.model == ModelType.GIN:
             output = TrainSubcommand.train_gin(smis, args.input or args.dataset, args.output)
         elif args.model == ModelType.VAE:
             pass
         else:
             raise RuntimeError("Help! I've fallen and I can't get up! << CALL LIFEALERT >>")
-        
+
         logger.info(f"Saved {args.model} model to {output}")
 
     @staticmethod
@@ -106,7 +116,7 @@ class TrainSubcommand(Subcommand):
             dirpath=f"chkpts/{MODEL_NAME}/{dataset_name}",
             filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
             monitor="val/loss",
-            auto_insert_metric_name=False
+            auto_insert_metric_name=False,
         )
         early_stopping = EarlyStopping("val/loss")
 
@@ -126,4 +136,3 @@ class TrainSubcommand(Subcommand):
         trainer.fit(model, train_loader, val_loader)
         output = output or f"models/{MODEL_NAME}/{dataset_name}.pt"
         torch.save(model.state_dict(), output)
-        
