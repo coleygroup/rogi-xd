@@ -16,24 +16,23 @@ warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarnin
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
 
 
-class TrieAutoencoder(pl.LightningModule):
+class LitVAE(pl.LightningModule):
     """A character autoencoder for learning latent representations of strings
 
     Parameters
     ----------
     tokenizer : Tokenizer
-        the :class:`Tokenizer` to use when measuring quality during validation
+        the :class:`~pcmr.models.vae.tokenizer.Tokenizer` to use when measuring quality during
+        validation
     encoder: CharEncoder
         the encoder module to project from tokenized sequences into the latent space
-    decoder: TrieDecoder
+    decoder: CharDecoder
         the decoder module to generate tokenized sequences from latent representations
-    supervisor: Supervisor
-        the supervision module to use for latent space organization with labelled inputs
     lr : float, default=3e-4
         the learning rate
     v_reg : Union[float, Scheduler, None], default=None
         the regularization loss weight scheduler. If `None`, use a linear scheduler from 0->0.1 over
-        100 epochs. If a float value is supplied, use a constant weight
+        20 epochs. If a float value is supplied, use a constant weight
     """
 
     def __init__(
@@ -46,9 +45,14 @@ class TrieAutoencoder(pl.LightningModule):
     ):
         super().__init__()
 
+        if len(tokenizer) != encoder.emb.num_embeddings:
+            raise ValueError(
+                "tokenizer and encoder have mismatched vocabulary sizes! "
+                f"got: {len(tokenizer)} and {encoder.emb.num_embeddings}, respectively."
+            )
         if encoder.d_z != decoder.d_z:
             raise ValueError(
-                "encoder and decoder have mismatched latent dimension sizes! "
+                "'encoder' and 'decoder' have mismatched latent dimension sizes! "
                 f"got: {encoder.d_z} and {decoder.d_z}, respectively."
             )
 
@@ -58,7 +62,7 @@ class TrieAutoencoder(pl.LightningModule):
 
         self.lr = lr
         if v_reg is None:
-            self.v_reg = LinearScheduler(0, 0.1, 100)
+            self.v_reg = LinearScheduler(0, 0.1, 20)
         elif isinstance(v_reg, float):
             self.v_reg = DummyScheduler(v_reg)
         else:
@@ -83,10 +87,10 @@ class TrieAutoencoder(pl.LightningModule):
         self.v_reg.i = 0
 
     def training_step(self, batch: tuple, batch_idx) -> Tensor:
-        xs, Y, mask_idxs = batch
+        xs = batch
 
         Z, l_reg = self.encoder.forward_step(xs)
-        X_logits = self.decoder.forward_step(xs, Z, mask_idxs)
+        X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
@@ -102,10 +106,10 @@ class TrieAutoencoder(pl.LightningModule):
         return l_rec + self.v_reg.v * l_reg + self.v_sup * l_sup
 
     def validation_step(self, batch, batch_idx):
-        xs, Y, mask_idxsss = batch
+        xs = batch
 
         Z, l_reg = self.encoder.forward_step(xs)
-        X_logits = self.decoder.forward_step(xs, Z, mask_idxsss)
+        X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
@@ -128,7 +132,7 @@ class TrieAutoencoder(pl.LightningModule):
 
         L = torch.tensor(list(zip(l_recs, l_regs))).mean(0)
         accuracy = sum(accs) / len(accs)
-        f_valid, f_unique = self.measure_quality(torch.randn(n, self.d_z, device=self.device))
+        f_valid, f_unique = self.check_gen_quality(torch.randn(n, self.d_z, device=self.device))
 
         self.log("val/rec", L[0])
         self.log("val/reg", L[1])
@@ -145,8 +149,8 @@ class TrieAutoencoder(pl.LightningModule):
 
         return optim.Adam(param_groups, self.lr)
 
-    def measure_quality(self, Z: Tensor):
-        smis = ["".join(self.tokenizer.ids2tokens(x.tolist())) for x in self.generate(Z)]
+    def check_gen_quality(self, Z: Tensor):
+        smis = [self.tokenizer.decode(x.tolist()) for x in self.generate(Z)]
 
         valid_smis = [smi for smi in smis if Chem.MolFromSmiles(smi) is not None]
         f_valid = len(valid_smis) / len(Z)
