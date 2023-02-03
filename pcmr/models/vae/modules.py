@@ -70,7 +70,7 @@ class CharDecoder(nn.Module):
 
         if len(tokenizer) != embedding.num_embeddings:
             warnings.warn(
-                "Input 'tokenizer' and 'embedding' have mismatching vocabulary sizes!"
+                "tokenizer and embedding have mismatched vocabulary sizes!"
                 f"got: {len(tokenizer)} and {embedding.num_embeddings}, respectively."
             )
 

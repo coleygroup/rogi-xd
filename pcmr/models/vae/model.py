@@ -96,14 +96,12 @@ class LitVAE(pl.LightningModule):
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
-        l_sup = self.supervisor(Z, Y)
 
         self.log("train/rec", l_rec)
         self.log("train/reg", l_reg)
-        self.log("train/sup", l_sup)
-        self.log("loss", l_rec + l_reg + l_sup)
+        self.log("loss", l_rec + l_reg)
 
-        return l_rec + self.v_reg.v * l_reg + self.v_sup * l_sup
+        return l_rec + self.v_reg.v * l_reg
 
     def validation_step(self, batch, batch_idx):
         xs = batch
@@ -115,9 +113,9 @@ class LitVAE(pl.LightningModule):
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
-        rec_acc = reconstruction_accuracy(xs, self.reconstruct(xs))
-
-        return l_rec, l_reg, rec_acc
+        acc = sum(map(torch.equal, zip(xs, self.reconstruct(xs))))
+        
+        return l_rec, l_reg, acc
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx=0) -> Tensor:
         return self.encode(batch)

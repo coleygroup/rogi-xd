@@ -24,5 +24,12 @@ pip install torch==1.13 \
 
 ## Training models
 
-- VAE was trained for 100 epochs using Adam and LR = 3e-4 
--
+- VAE was trained for 50 epochs using Adam and LR = 3e-4 
+- GIN was trained for 50 epochs with 15% attribute masking
+- both models were trained unsupervised on pubchem QC (PCQC) 4M dataset:
+
+```bash
+wget https://dgl-data.s3-accelerate.amazonaws.com/dataset/OGB-LSC/pcqm4m_kddcup2021.zip -O PCQC4M.zip
+unzip PCQC4M.zip
+gunzip -c pcqm4m_kddcup2021/raw/data.csv.gz | cut -d',' -f 2 > pcqc4M.smis.csv
+```
