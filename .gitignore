@@ -159,6 +159,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+wandb/*
 pcmr/_version.py
 *.ipynb
 *.csv
@@ -169,3 +170,5 @@ oracle
 .vscode
 *.pdf
 *.pt
+chkpts/*
+models/*

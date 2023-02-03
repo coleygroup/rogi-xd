@@ -6,7 +6,6 @@ from pcmr.cli.command import Subcommand
 
 class ListSubcommand(Subcommand):
     COMMAND = "list"
-    # FUNC = list_all
 
     @classmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:

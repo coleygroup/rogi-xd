@@ -3,6 +3,7 @@ import logging
 
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
+from pcmr.cli.train import TrainSubcommand
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,8 @@ def main():
     subparsers = parser.add_subparsers()
     ListSubcommand.add(subparsers)
     RogiSubcommand.add(subparsers)
-
+    TrainSubcommand.add(subparsers)
+    
     args = parser.parse_args()
 
     LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
