@@ -8,8 +8,8 @@ class Subcommand(ABC):
     HELP: Optional[str] = None
 
     @classmethod
-    def add(cls, subparsers: _SubParsersAction):
-        parser = subparsers.add_parser(cls.COMMAND, help=cls.HELP)
+    def add(cls, subparsers: _SubParsersAction, parents):
+        parser = subparsers.add_parser(cls.COMMAND, help=cls.HELP, parents=parents)
         cls.add_args(parser).set_defaults(func=cls.func)
 
         return parser

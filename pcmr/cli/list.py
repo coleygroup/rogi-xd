@@ -6,7 +6,8 @@ from pcmr.cli.command import Subcommand
 
 class ListSubcommand(Subcommand):
     COMMAND = "list"
-
+    HELP = "list the available datasets"
+    
     @classmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
         parser.add_argument("output", nargs="?", type=FileType("w"))

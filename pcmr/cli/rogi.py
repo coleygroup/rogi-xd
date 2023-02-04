@@ -47,11 +47,13 @@ def calc_rogi(
 
 class RogiSubcommand(Subcommand):
     COMMAND = "rogi"
+    HELP = "Calculate the ROGI of (featurizer, dataset) pairs"
 
     @classmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
         parser.add_argument("-i", "--input", type=FileType("r"))
         parser.add_argument(
+            "-d",
             "--datasets-tasks",
             "--dt",
             "--datasets",
@@ -80,6 +82,7 @@ class RogiSubcommand(Subcommand):
 
     @staticmethod
     def func(args: Namespace):
+        exit()
         if args.input is not None:
             args.datasets_tasks.extend([dataset_and_task(line.strip()) for line in args.input])
 

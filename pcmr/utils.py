@@ -55,8 +55,8 @@ class ClassRegistry(Mapping[str, Type]):
     def __init__(self):
         self.__registry = {}
 
-    def register(self, cls=None, *, alias: Union[str, Iterable[str], None] = None):
-        def actual_decorator(cls):
+    def register(self, alias: Union[str, Iterable[str], None] = None):
+        def decorator(cls):
             if alias is None:
                 keys = [cls.__name__.lower()]
             elif isinstance(alias, str):
@@ -73,7 +73,7 @@ class ClassRegistry(Mapping[str, Type]):
 
             return cls_wrapper
 
-        return actual_decorator(cls) if cls is not None else actual_decorator
+        return decorator
 
     __call__ = register
 
