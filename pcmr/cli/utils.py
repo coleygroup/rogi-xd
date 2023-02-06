@@ -1,6 +1,6 @@
 from enum import auto
 import functools
-from typing import Any, Callable, Iterable, NamedTuple, Optional
+from typing import Any, Callable, NamedTuple, Optional
 
 from tdc.utils import fuzzy_search
 

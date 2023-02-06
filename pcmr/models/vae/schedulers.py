@@ -152,7 +152,7 @@ class ManualScheduler(Scheduler):
 
     @staticmethod
     def calc_schedule(v0, v1, max_steps):
-        raise NotImplementedError(f"`ManualKLScheduler` does not calculate a schedule!")
+        raise NotImplementedError("`ManualKLScheduler` does not calculate a schedule!")
 
     @classmethod
     def from_steps_and_weights(cls, steps_weights: Iterable[tuple[int, float]]) -> ManualScheduler:

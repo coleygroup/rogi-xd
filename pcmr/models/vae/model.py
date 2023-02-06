@@ -155,6 +155,6 @@ class LitVAE(pl.LightningModule, PlMixin):
         smis = [smi for smi in smis if Chem.MolFromSmiles(smi) is not None]
 
         f_valid = len(smis) / len(Z)
-        f_unique = 0 if len(smis) is 0 else len(set(smis)) / len(smis)
+        f_unique = 0 if len(smis) == 0 else len(set(smis)) / len(smis)
 
         return f_valid, f_unique
