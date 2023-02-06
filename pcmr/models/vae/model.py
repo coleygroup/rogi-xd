@@ -3,6 +3,7 @@ import warnings
 
 import pytorch_lightning as pl
 from rdkit import Chem
+from rdkit.rdBase import BlockLogs
 import torch
 from torch import Tensor, optim, nn
 from torch.nn.utils import rnn
@@ -11,6 +12,7 @@ from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, DummyScheduler
 
+block = BlockLogs()
 warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarning)
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
 
@@ -54,6 +56,10 @@ class LitVAE(pl.LightningModule):
                 "'encoder' and 'decoder' have mismatched latent dimension sizes! "
                 f"got: {encoder.d_z} and {decoder.d_z}, respectively."
             )
+        if encoder.emb is not decoder.emb:
+            warnings.warn(
+                "encoder and decoder are using different embedding layers! Is this intentional?"
+            )
 
         self.tokenizer = tokenizer
         self.encoder = encoder
@@ -80,7 +86,10 @@ class LitVAE(pl.LightningModule):
         return self.decoder(Z, max_len)
 
     def reconstruct(self, xs: Sequence[Tensor]) -> list[Tensor]:
-        return self.decoder(self.encoder(xs))
+        return self.decode(self.encode(xs))
+
+    forward = encode
+    generate = decode
 
     def on_train_start(self):
         self.v_reg.i = 0
@@ -112,7 +121,7 @@ class LitVAE(pl.LightningModule):
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
-        acc = sum(map(torch.equal, zip(xs, self.reconstruct(xs))))
+        acc = sum(map(torch.equal, xs, self.reconstruct(xs)))
 
         return l_rec, l_reg, acc
 
@@ -120,7 +129,7 @@ class LitVAE(pl.LightningModule):
         return self.encode(batch)
 
     def training_epoch_end(self, *args):
-        self.log(f"v/{self.encoder.regularizer.name}", self.v_reg.v)
+        self.log(f"v/{self.encoder.reg.name}", self.v_reg.v)
         self.v_reg.step()
 
     def validation_epoch_end(self, outputs):
@@ -139,20 +148,17 @@ class LitVAE(pl.LightningModule):
         self.log(f"val/unique@{n//1000}k", f_unique)
 
     def configure_optimizers(self):
-        param_groups = [
-            {"params": self.encoder.parameters()},
-            {"params": self.decoder.parameters()},
-        ]
+        params = set(self.encoder.parameters()) | set(self.decoder.parameters())
 
-        return optim.Adam(param_groups, self.lr)
+        return optim.Adam(params, self.lr)
 
     def check_gen_quality(self, Z: Tensor):
-        smis = [self.tokenizer.decode(x.tolist()) for x in self.generate(Z)]
+        smis = [self.tokenizer.decode(x.tolist()) for x in self.decode(Z)]
+        smis = [smi for smi in smis if Chem.MolFromSmiles(smi) is not None]
 
-        valid_smis = [smi for smi in smis if Chem.MolFromSmiles(smi) is not None]
-        f_valid = len(valid_smis) / len(Z)
+        f_valid = len(smis) / len(Z)
         try:
-            f_unique = len(set(valid_smis)) / len(valid_smis)
+            f_unique = len(set(smis)) / len(smis)
         except ZeroDivisionError:
             f_unique = 0
 
