@@ -1,23 +1,12 @@
 from typing import Any, Mapping, Optional
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers.wandb import WandbLogger
-from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
-from tdc.generation import MolGen
 import torch
-
+from torch import Tensor
 from torchdrug.models import GIN
-from torchdrug.layers import MLP
-from torchdrug.core import Registry as R
-from torchdrug.data import DataLoader, constant
+from torchdrug.layers import MLP, functional
+from torchdrug.data import constant
 from torchdrug.tasks import AttributeMasking
-from torchdrug.data.dataset import MoleculeDataset
-
-
-# @R.register("datasets.Custom")
-# class CustomDataset(MoleculeDataset):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
 
 
 class LitAttrMaskGIN(pl.LightningModule):
@@ -35,10 +24,9 @@ class LitAttrMaskGIN(pl.LightningModule):
 
         d_h = d_h or [300, 300, 300, 300, 300]
         gin_kwargs = gin_kwargs or dict(batch_norm=True, readout="mean")
-        model = GIN(d_v, d_h, d_e, **gin_kwargs)
-        task = AttributeMasking(model, mask_rate)
-
-        self.task = self.connect_task(task, view, model)
+        gin = GIN(d_v, d_h, d_e, **gin_kwargs)
+        task = AttributeMasking(gin, mask_rate)
+        self.task = self.connect_task(task, view, gin)
         self.lr = lr
 
     def connect_task(self, task, view, model):
@@ -48,6 +36,32 @@ class LitAttrMaskGIN(pl.LightningModule):
         task.mlp = MLP(d_o, [d_o] * (task.num_mlp_layer - 1) + [n_label])
 
         return task
+
+    def forward(self, graph) -> Tensor:
+        n_nodes = graph.num_nodes if self.task.view in ["atom", "node"] else graph.num_residues
+        n_nodes_cum = n_nodes.cumsum(0)
+        n_samples = (n_nodes * self.mask_rate).long().clamp(1)
+        total_samples = n_samples.sum()
+        sample2graph = functional._size_to_index(n_samples)
+        node_idxs = (torch.rand(total_samples, device=self.device) * n_nodes[sample2graph]).long()
+        node_idxs = node_idxs + (n_nodes_cum - n_nodes)[sample2graph]
+
+        if self.task.view == "atom":
+            inputs = graph.node_feature.float()
+            inputs[node_idxs] = 0
+        else:
+            with graph.residue():
+                graph.residue_feature[node_idxs] = 0
+                graph.residue_type[node_idxs] = 0
+            inputs = graph.residue_feature.float()
+
+        output = self.task.model(graph, inputs)
+        if self.task.view in ["node", "atom"]:
+            X_v = output["node_feature"]
+        else:
+            X_v = output.get("residue_feature", output.get("node_feature"))
+
+        return X_v[node_idxs]
 
     def training_step(self, batch, batch_idx):
         loss, metrics = self.task(batch)
@@ -63,42 +77,11 @@ class LitAttrMaskGIN(pl.LightningModule):
 
         self._log_split("val", {"loss": loss, "accuracy": acc}, batch_size=len(batch["graph"]))
 
+    def predict_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> Any:
+        return self(batch["graph"])
+
     def configure_optimizers(self):
         return torch.optim.Adam(self.task.parameters(), self.lr)
 
     def _log_split(self, split: str, d: Mapping[str, Any], *args, **kwargs):
         self.log_dict({f"{split}/{k}": v for k, v in d.items()}, *args, **kwargs)
-
-
-# dataset = CustomDataset()
-# dataset.load_smiles(smis, {}, lazy=False, atom_feature="pretrain", bond_feature="pretrain")
-# n_train = int(0.8 * len(dataset))
-# n_val = len(dataset) - n_train
-# train_dset, val_dset = torch.utils.data.random_split(dataset, [n_train, n_val])
-
-# model = LitAttrMaskGIN(dataset.node_feature_dim, dataset.edge_feature_dim)
-
-# model_name = "gin_am"
-# checkpoint = ModelCheckpoint(
-#     dirpath=f"chkpts/{model_name}/{dataset_name}",
-#     filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
-#     monitor="val/loss",
-#     auto_insert_metric_name=False
-# )
-# early_stopping = EarlyStopping("val/loss")
-
-# trainer = pl.Trainer(
-#     WandbLogger(project=f"{model_name}-{dataset_name}"),
-#     callbacks=[checkpoint, early_stopping],
-#     accelerator="gpu",
-#     devices=1,
-#     check_val_every_n_epoch=3,
-# )
-
-# batch_size = 256
-# num_workers = 0
-# train_loader = DataLoader(train_dset, batch_size, num_workers=num_workers)
-# val_loader = DataLoader(val_dset, batch_size, num_workers=num_workers)
-
-# trainer.fit(model, train_loader, val_loader)
-# torch.save(model, f"gin-am_{dataset_name}.pt")

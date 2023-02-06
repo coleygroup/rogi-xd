@@ -23,10 +23,11 @@ def bounded(lo=None, hi=None):
     def decorator(f):
         if lo is None and hi is None:
             raise ValueError("No bounds provided!")
+
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
             x = f(*args, **kwargs)
-            
+
             if (lo is not None and hi is not None) and not lo <= x <= hi:
                 raise ValueError(f"Parsed value outside of range [{lo}, {hi}]! got: {x}")
             if hi is not None and x > hi:
@@ -34,7 +35,9 @@ def bounded(lo=None, hi=None):
             if lo is not None and x < lo:
                 raise ValueError(f"Parsed value above {lo}]! got: {x}")
             return x
+
         return wrapper
+
     return decorator
 
 
@@ -71,7 +74,7 @@ def pop_attr(o: object, attr: str, *args) -> Optional[Any]:
     if len(args) == 1:
         default = args[0]
         return _pop_attr_d(o, attr, default)
-    
+
     raise TypeError(f"Expected at most 3 arguments! got: {len(args)}")
 
 
@@ -88,5 +91,5 @@ def _pop_attr_d(o: object, attr: str, default: Optional[Any] = None) -> Optional
         delattr(o, attr)
     except AttributeError:
         val = default
-    
+
     return val

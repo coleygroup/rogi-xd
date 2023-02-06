@@ -35,7 +35,7 @@ class ModeSampler(Sampler):
     """A `ModeSampler` selects the index of the mode of the distribution"""
 
     def sample(self, probs: Tensor) -> Tensor:
-        return probs.argmax(1)
+        return probs.argmax(-1)
 
 
 class MultinomialSampler(Sampler):

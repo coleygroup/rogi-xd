@@ -14,7 +14,6 @@ class CharEncoder(nn.Module):
     def __init__(
         self,
         embedding: nn.Embedding,
-        d_emb: int = 64,
         d_h: int = 256,
         n_layers: int = 1,
         dropout: float = 0.0,
@@ -24,20 +23,23 @@ class CharEncoder(nn.Module):
     ):
         super().__init__()
 
-        self.d_z = d_z
-
         self.emb = embedding
         self.rnn = nn.GRU(
-            d_emb, d_h, n_layers, batch_first=True, dropout=dropout, bidirectional=bidir
+            self.emb.embedding_dim,
+            d_h,
+            n_layers,
+            batch_first=True,
+            dropout=dropout,
+            bidirectional=bidir,
         )
         d_h_rnn = 2 * d_h if bidir else d_h
 
-        self.regularizer = regularizer or VariationalRegularizer(d_z)
-        self.regularizer.setup(d_h_rnn)
+        self.reg = regularizer or VariationalRegularizer(d_z)
+        self.reg.setup(d_h_rnn)
 
     @property
     def d_z(self) -> int:
-        return self.regularizer.d_z
+        return self.reg.d_z
 
     def _forward(self, xs: Sequence[Tensor]) -> Tensor:
         xs_emb = [self.emb(x) for x in xs]
@@ -49,10 +51,10 @@ class CharEncoder(nn.Module):
         return torch.cat(H.split(1), -1).squeeze(0)
 
     def forward(self, xs: Sequence[Tensor]) -> Tensor:
-        return self.regularizer(self._forward(xs))
+        return self.reg(self._forward(xs))
 
     def forward_step(self, xs: Sequence[Tensor]) -> tuple[Tensor, Tensor]:
-        return self.regularizer.forward_step(self._forward(xs))
+        return self.reg.forward_step(self._forward(xs))
 
 
 class CharDecoder(nn.Module):

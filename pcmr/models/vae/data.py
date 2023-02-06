@@ -2,7 +2,7 @@ from typing import Iterable
 
 import torch
 from torch import Tensor
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 from pcmr.models.vae.tokenizer import Tokenizer
 
@@ -20,6 +20,9 @@ class UnsupervisedDataset(Dataset):
         ids = self.tokenizer.tokens2ids(s)
 
         return torch.tensor(ids, dtype=torch.long)
+
+    def to_dataloader(self, *args, **kwargs) -> DataLoader:
+        return DataLoader(self, *args, **kwargs, collate_fn=self.collate_fn)
 
     @staticmethod
     def collate_fn(idss) -> list[Tensor]:

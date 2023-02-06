@@ -51,18 +51,22 @@ class Tokenizer:
 
     @property
     def SOS(self) -> int:
+        """the index of the start-of-sequence token"""
         return self.t2i[self.st.SOS]
 
     @property
     def EOS(self) -> int:
+        """the index of the end-of-sequence token"""
         return self.t2i[self.st.EOS]
 
     @property
     def PAD(self) -> int:
+        """the index of the pad token"""
         return self.t2i[self.st.PAD]
 
     @property
     def UNK(self) -> int:
+        """index of the unknown symbol token"""
         return self.t2i[self.st.UNK]
 
     def encode(self, word: str) -> list[int]:
@@ -91,13 +95,13 @@ class Tokenizer:
             return []
 
         if rem_st:
-            bos, *ids_, eos = ids
-            if bos == self.BOS and eos == self.EOS:
+            sos, *ids_, eos = ids
+            if sos == self.SOS and eos == self.EOS:
                 ids = ids_
-            elif bos == self.BOS:
+            elif sos == self.SOS:
                 ids = [*ids_, eos]
             elif eos == self.EOS:
-                ids = [bos, *ids_]
+                ids = [sos, *ids_]
 
         return [self.i2t.get(i, self.st.UNK) for i in ids]
 
