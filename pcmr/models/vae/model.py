@@ -8,6 +8,7 @@ import torch
 from torch import Tensor, optim, nn
 from torch.nn.utils import rnn
 
+from pcmr.models.utils import PlMixin
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, DummyScheduler
@@ -17,7 +18,7 @@ warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarnin
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
 
 
-class LitVAE(pl.LightningModule):
+class LitVAE(pl.LightningModule, PlMixin):
     """A character autoencoder for learning latent representations of strings
 
     Parameters
@@ -64,7 +65,6 @@ class LitVAE(pl.LightningModule):
         self.tokenizer = tokenizer
         self.encoder = encoder
         self.decoder = decoder
-
         self.lr = lr
         if v_reg is None:
             self.v_reg = LinearScheduler(0, 0.1, 20)
@@ -105,8 +105,8 @@ class LitVAE(pl.LightningModule):
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
 
-        self.log("train/rec", l_rec)
-        self.log("train/reg", l_reg)
+        metrics = dict(rec=l_rec, reg=l_reg)
+        self._log_split("train", metrics)
         self.log("loss", l_rec + l_reg)
 
         return l_rec + self.v_reg.v * l_reg
@@ -123,29 +123,27 @@ class LitVAE(pl.LightningModule):
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
         acc = sum(map(torch.equal, xs, self.reconstruct(xs)))
 
-        return l_rec, l_reg, acc
+        return l_rec, l_reg, acc, len(xs)
 
     def predict_step(self, batch, batch_idx: int, dataloader_idx=0) -> Tensor:
         return self.encode(batch)
 
+    def on_train_epoch_start(self):
+        self.log(f"v/{self.encoder.reg.alias}", self.v_reg.v)
+
     def training_epoch_end(self, *args):
-        self.log(f"v/{self.encoder.reg.name}", self.v_reg.v)
         self.v_reg.step()
 
     def validation_epoch_end(self, outputs):
-        l_recs, l_regs, accs = zip(*outputs)
+        l_recs, l_regs, accs, sizes = torch.tensor(outputs).hsplit(4)
+        l_rec, l_reg, acc = ((l * sizes).sum() / sizes.sum() for l in [l_recs, l_regs, accs])
+        metrics = dict(rec=l_rec, reg=l_reg, loss=l_rec + l_reg, acc=acc)
+
         n = 1000
-
-        L = torch.tensor(list(zip(l_recs, l_regs))).mean(0)
-        accuracy = sum(accs) / len(accs)
         f_valid, f_unique = self.check_gen_quality(torch.randn(n, self.d_z, device=self.device))
+        metrics.update({f"valid@{n//1000}k": f_valid, f"unique@{n//1000}k": f_unique})
 
-        self.log("val/rec", L[0])
-        self.log("val/reg", L[1])
-        self.log("val/loss", L.sum())
-        self.log("val/accuracy", accuracy)
-        self.log(f"val/valid@{n//1000}k", f_valid)
-        self.log(f"val/unique@{n//1000}k", f_unique)
+        self._log_split("val", metrics)
 
     def configure_optimizers(self):
         params = set(self.encoder.parameters()) | set(self.decoder.parameters())
@@ -157,9 +155,6 @@ class LitVAE(pl.LightningModule):
         smis = [smi for smi in smis if Chem.MolFromSmiles(smi) is not None]
 
         f_valid = len(smis) / len(Z)
-        try:
-            f_unique = len(set(smis)) / len(smis)
-        except ZeroDivisionError:
-            f_unique = 0
+        f_unique = 0 if len(smis) is 0 else len(set(smis)) / len(smis)
 
         return f_valid, f_unique

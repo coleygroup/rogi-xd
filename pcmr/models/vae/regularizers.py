@@ -14,7 +14,7 @@ class Regularizer(nn.Module):
 
     @property
     @abstractmethod
-    def name(self) -> str:
+    def alias(self) -> str:
         """the alias of the regularization loss"""
 
     @abstractmethod
@@ -39,7 +39,7 @@ class DummyRegularizer(Regularizer):
         super().__init__(d_z)
 
     @property
-    def name(self) -> str:
+    def alias(self) -> str:
         return "ae"
 
     def setup(self, d_h: int):
@@ -66,7 +66,7 @@ class VariationalRegularizer(DummyRegularizer):
         super().__init__(d_z)
 
     @property
-    def name(self) -> str:
+    def alias(self) -> str:
         return "kl"
 
     def setup(self, d_h: int):

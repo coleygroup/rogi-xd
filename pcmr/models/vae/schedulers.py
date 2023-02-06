@@ -35,7 +35,7 @@ class Scheduler(ABC):
 
     @property
     def v(self) -> float:
-        """The current KL weight"""
+        """The current weight"""
         return self.schedule[min(len(self), self.i)]
 
     def step(self) -> float:

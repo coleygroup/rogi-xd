@@ -8,8 +8,10 @@ from torchdrug.layers import MLP, functional
 from torchdrug.data import constant
 from torchdrug.tasks import AttributeMasking
 
+from pcmr.models.utils import PlMixin
 
-class LitAttrMaskGIN(pl.LightningModule):
+
+class LitAttrMaskGIN(pl.LightningModule, PlMixin):
     def __init__(
         self,
         d_v: int,
@@ -82,6 +84,3 @@ class LitAttrMaskGIN(pl.LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.task.parameters(), self.lr)
-
-    def _log_split(self, split: str, d: Mapping[str, Any], *args, **kwargs):
-        self.log_dict({f"{split}/{k}": v for k, v in d.items()}, *args, **kwargs)

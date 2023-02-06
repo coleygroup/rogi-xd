@@ -91,6 +91,7 @@ class TrainSubcommand(Subcommand):
             smis = choices(smis, k=args.N)
 
         if args.gpus is None:
+            logger.debug("GPU unspecifeid... Will use GPU if available")
             args.gpus = 1 if torch.cuda.is_available() else 0
 
         if len(smis) == 0:
@@ -182,7 +183,7 @@ class TrainSubcommand(Subcommand):
         decoder = CharDecoder(tokenizer, embedding)
         model = LitVAE(tokenizer, encoder, decoder)
 
-        dataset = UnsupervisedDataset(smis, tokenizer)
+        dataset = CachedUnsupervisedDataset(smis, tokenizer)
         n_train = int(0.8 * len(dataset))
         n_val = len(dataset) - n_train
         train_dset, val_dset = torch.utils.data.random_split(dataset, [n_train, n_val])
