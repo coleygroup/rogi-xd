@@ -33,8 +33,11 @@ class LitVAE(pl.LightningModule, PlMixin):
     lr : float, default=3e-4
         the learning rate
     v_reg : Union[float, Scheduler, None], default=None
-        the regularization loss weight scheduler. If `None`, use a linear scheduler from 0->0.1 over
-        20 epochs. If a float value is supplied, use a constant weight
+        the regularization loss weight scheduler. One of:
+        
+        * `Scheduler`: the scheduler to use
+        * `float`: use a constant weight schedule (i.e., no scheudle)
+        * `None`: use a `~pcmr.models.vae.schedulers.LinearScheduler` from 0->0.1 over 20 epochs
     """
 
     def __init__(
@@ -121,7 +124,7 @@ class LitVAE(pl.LightningModule, PlMixin):
         X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
-        acc = sum(map(torch.equal, xs, self.reconstruct(xs)))
+        acc = sum(map(torch.equal, xs, self.reconstruct(xs))) / len(xs)
 
         return l_rec, l_reg, acc, len(xs)
 
