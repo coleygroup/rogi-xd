@@ -23,7 +23,7 @@ from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup
 from pcmr.models.vae.data import UnsupervisedDataset
 
 logger = logging.getLogger(__name__)
-torch.set_float32_matmul_precision('high')
+torch.set_float32_matmul_precision("high")
 
 
 class TrainSubcommand(Subcommand):
@@ -134,7 +134,7 @@ class TrainSubcommand(Subcommand):
             filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
             monitor="val/loss",
             auto_insert_metric_name=False,
-            save_last=True
+            save_last=True,
         )
         early_stopping = EarlyStopping("val/loss")
 
@@ -191,7 +191,7 @@ class TrainSubcommand(Subcommand):
             filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
             monitor="val/loss",
             auto_insert_metric_name=False,
-            save_last=True
+            save_last=True,
         )
         early_stopping = EarlyStopping("val/loss", patience=5)
         trainer = pl.Trainer(

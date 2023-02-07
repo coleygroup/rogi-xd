@@ -34,7 +34,7 @@ class LitVAE(pl.LightningModule, PlMixin):
         the learning rate
     v_reg : Union[float, Scheduler, None], default=None
         the regularization loss weight scheduler. One of:
-        
+
         * `Scheduler`: the scheduler to use
         * `float`: use a constant weight schedule (i.e., no scheudle)
         * `None`: use a `~pcmr.models.vae.schedulers.LinearScheduler` from 0->0.1 over 20 epochs
