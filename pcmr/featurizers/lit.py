@@ -7,7 +7,7 @@ import torch
 import torch.utils.data
 import torchdrug.data
 
-from pcmr.featurizers.base import FeaturizerBase
+from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae.data import UnsupervisedDataset
 
@@ -36,10 +36,11 @@ class LitFeaturizer(FeaturizerBase):
         return torch.cat(Xs).numpy().astype(float)
 
     @abstractmethod
-    def build_dataloader(self, smis) -> torch.utils.data.Dataloader:
+    def build_dataloader(self, smis) -> torch.utils.data.DataLoader:
         pass
 
 
+@FeaturizerRegistry.register("gin")
 class GINFeaturizer(LitFeaturizer):
     def build_dataloader(self, smis):
         dataset = CustomDataset()
@@ -48,6 +49,7 @@ class GINFeaturizer(LitFeaturizer):
         return torchdrug.data.DataLoader(dataset, self.batch_size, num_workers=self.num_workers)
 
 
+@FeaturizerRegistry.register("vae")
 class VAEFeaturizer(LitFeaturizer):
     def build_dataloader(self, smis):
         dataset = UnsupervisedDataset(smis, self.model.tokenizer)

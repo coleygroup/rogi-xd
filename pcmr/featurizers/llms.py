@@ -63,7 +63,7 @@ class HuggingFaceFeaturizer(FeaturizerBase):
         return torch.stack([H[0, self.CLASSIFICATION_TOKEN_IDX, :] for H in self.fe(smis)]).numpy()
 
 
-@FeaturizerRegistry.register(alias="chemberta")
+@FeaturizerRegistry.register("chemberta")
 class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
     MODEL_ID = "DeepChem/ChemBERTa-77M-MLM"
     DEFAULT_BATCH_SIZE = 32
@@ -73,7 +73,7 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
         return "chemberta"
 
 
-@FeaturizerRegistry.register(alias="chemgpt")
+@FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
     CHEMGPT = "ncfrey/ChemGPT-1.2B"
     DEFAULT_BATCH_SIZE = 8

@@ -26,7 +26,7 @@ DEFAULT_DESCRIPTORS = [
 ]
 
 
-@FeaturizerRegistry.register(alias="descriptor")
+@FeaturizerRegistry.register("descriptor")
 class DescriptorFeauturizer(FeaturizerBase):
     def __init__(self, names: Optional[Iterable[str]] = None, scale: bool = True, **kwargs):
         self.names = set(names or DEFAULT_DESCRIPTORS)
