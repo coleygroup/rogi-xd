@@ -17,10 +17,9 @@ class UnsupervisedDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, i: int) -> Tensor:
-        s = self.tokenizer(self.data[i])
-        ids = self.tokenizer.tokens2ids(s)
+        xs = self.tokenizer(self.data[i])
 
-        return torch.tensor(ids, dtype=torch.long)
+        return torch.tensor(xs, dtype=torch.long)
 
     @staticmethod
     def collate_fn(idss) -> list[Tensor]:
