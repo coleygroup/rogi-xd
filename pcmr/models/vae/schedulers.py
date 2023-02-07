@@ -6,8 +6,12 @@ from typing import Any, Iterable
 import numpy as np
 from numpy.typing import ArrayLike
 
+from pcmr.utils import ClassRegistry, Configurable
 
-class Scheduler(ABC):
+SchedulerRegistry = ClassRegistry()
+
+
+class Scheduler(ABC, Configurable):
     """A Scheduler anneals a weight term from `v0` -> `v1` over `max_steps` number of steps
 
     Parameters
@@ -64,11 +68,24 @@ class Scheduler(ABC):
             number of steps
         """
 
+    def to_config(self) -> dict:
+        return {
+            "v_min": self.v_min,
+            "v_max": self.v_max,
+            "max_steps": self.max_steps,
+            "name": self.name
+        }
+    
+    @classmethod
+    def from_config(cls, config: dict) -> Configurable:
+        return cls(**config)
+    
     def get_params(self) -> Iterable[tuple[str, Any]]:
-        return [self.v_min, self.v_max, self.max_steps, self.name]
+        return self.to_config().items()
 
 
-class DummyScheduler(Scheduler):
+@SchedulerRegistry.register("constant")
+class ConstantScheduler(Scheduler):
     """A dummy class to return a constant weight of v"""
 
     def __init__(self, v: float, name: str = "v"):
@@ -78,10 +95,14 @@ class DummyScheduler(Scheduler):
     def calc_schedule(v, *args) -> np.ndarray:
         return np.array([v])
 
-    def get_params(self) -> Iterable[tuple[str, Any]]:
-        return [self.v, self.name]
+    def to_config(self) -> dict:
+        return {
+            "v": self.v,
+            "name": self.name
+        }
 
 
+@SchedulerRegistry.register("linear")
 class LinearScheduler(Scheduler):
     """Linearly increments the KL weight from `v_min` to `v_max`. Reaches `v_max` after
     `max_steps` calls to `step()`"""
@@ -128,6 +149,7 @@ class CyclicScheduler(LinearScheduler):
         return items
 
 
+@SchedulerRegistry.register("manual")
 class ManualScheduler(Scheduler):
     """Step the weight according to the input schedule
 
@@ -169,5 +191,10 @@ class ManualScheduler(Scheduler):
 
         return cls(schedule)
 
+    def to_config(self) -> dict:
+        return {
+            "schedule": self.schedule.tolist(),
+        }
+    
     def get_params(self):
         return [self.schedule.tolist()]

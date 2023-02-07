@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from enum import Enum, auto
-import functools
-from typing import Iterable, Iterator, NamedTuple, Type, Union
+from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union
 
 import torch
 
@@ -64,14 +64,14 @@ class ClassRegistry(Mapping[str, Type]):
             else:
                 keys = alias
 
+            # class wrapped(cls):
+            #     alias = keys[0]
+
+            cls.alias = keys[0]
             for k in keys:
                 self.__registry[k] = cls
 
-            @functools.wraps(cls)
-            def cls_wrapper(*args, **kwargs):
-                return cls(*args, **kwargs)
-
-            return cls_wrapper
+            return cls
 
         return decorator
 
@@ -85,6 +85,29 @@ class ClassRegistry(Mapping[str, Type]):
 
     def __len__(self) -> int:
         return len(self.__registry)
+
+
+class Configurable(Protocol):
+    def to_config(self) -> dict:
+        pass
+
+    @classmethod
+    def from_config(cls, config: dict) -> Configurable:
+        pass
+
+
+# @dataclass
+# class Factory:
+#     registry: ClassRegistry
+
+#     def to_config(self, obj: Configurable):
+#         return {"alias": obj.alias, "config": obj.to_config()}
+    
+#     def from_config(self, config):
+#         alias = config["v_reg"]["alias"]
+#         cls_config = config["v_reg"]["config"]
+        
+#         return self.registry[alias].from_config(cls_config)
 
 
 class flist(list):

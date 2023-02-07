@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
-import json
-
 import re
 from typing import Iterable, Iterator, Sequence
+
+from pcmr.utils import Configurable
 
 _SMILES_PATTERN = r"(\[|\]|Br?|C[u,l]?|Zn|S[i,n]?|Li|Na?|Fe?|H|K|O|P|I|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@{1,2}|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
 _SMILES_VOCAB = [*"HBCNOSPFIcnosp[]()123456@-+=#/\\", "Cl", "Br", "@@"]
@@ -25,18 +25,18 @@ class SpecialTokens:
         return any(t == st for st in self)
 
 
-class Tokenizer:
-    def __init__(self, pattern: str, vocab: Iterable[str], st: SpecialTokens = SpecialTokens()):
-        if any(t in st for t in vocab):
+class Tokenizer(Configurable):
+    def __init__(self, pattern: str, tokens: Iterable[str], st: SpecialTokens = SpecialTokens()):
+        if any(t in st for t in tokens):
             raise ValueError("'tokens' and 'special_tokens' contain overlapping tokens!")
 
-        vocab = sorted(vocab) + list(st)
 
         self.pattern = re.compile(pattern)
         self.st = st
 
-        self.t2i = {t: i for i, t in enumerate(vocab)}
-        self.i2t = {i: t for i, t in enumerate(vocab)}
+        tokens = sorted(tokens) + list(self.st)
+        self.t2i = {t: i for i, t in enumerate(tokens)}
+        self.i2t = {i: t for i, t in enumerate(tokens)}
 
     def __len__(self) -> int:
         """the number of the tokens in this tokenizer"""
@@ -105,22 +105,19 @@ class Tokenizer:
 
         return [self.i2t.get(i, self.st.UNK) for i in ids]
 
-    @classmethod
-    def to_json(cls, tokenzier: Tokenizer) -> str:
-        return json.dumps(
-            {
-                "pattern": tokenzier.pattern.pattern,
-                "tokens": list(t for t in tokenzier.t2i.keys() if t not in tokenzier.st),
-                "st": asdict(tokenzier.st),
-            }
-        )
+    def to_config(self) -> dict:
+        return {
+            "pattern": self.pattern.pattern,
+            "tokens": list(t for t in self.t2i.keys() if t not in self.st),
+            "st": asdict(self.st),
+        }
 
     @classmethod
-    def from_json(cls, json: str):
-        d = json.loads(json)
-        d["st"] = SpecialTokens(**d["st"])
+    def from_config(cls, config: dict):
+        st = SpecialTokens(**config["st"])
 
-        return cls(**d)
+        config = config | dict(st=st)
+        return cls(**config)
 
     @classmethod
     def from_corpus(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Sequence, Union
 import warnings
 
@@ -11,15 +13,21 @@ from torch.nn.utils import rnn
 from pcmr.models.utils import PlMixin
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
-from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, DummyScheduler
+from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, ConstantScheduler, SchedulerRegistry
+from pcmr.utils import Configurable
 
 block = BlockLogs()
 warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarning)
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
 
 
-class LitVAE(pl.LightningModule, PlMixin):
-    """A character autoencoder for learning latent representations of strings
+class LitVAE(pl.LightningModule, Configurable, PlMixin):
+    """A variational autoencoder for learning latent representations of strings using
+    character-based RNN encoder/decoder pair
+
+    NOTE: The encoder and decoder both utilize an embedding layer, and in a proper VAE, this layer
+    is shared between the two modules. Though this is not strictly required for a VAE to work, it
+    likely won't work very well if the two are independent
 
     Parameters
     ----------
@@ -38,6 +46,13 @@ class LitVAE(pl.LightningModule, PlMixin):
         * `Scheduler`: the scheduler to use
         * `float`: use a constant weight schedule (i.e., no scheudle)
         * `None`: use a `~pcmr.models.vae.schedulers.LinearScheduler` from 0->0.1 over 20 epochs
+    
+    Raises
+    ------
+    ValueError
+        
+        * if the supplied Tokenizer and CharEncoder do not have the same vocabulary size
+        * if the supplied CharEncoder and CharDecoder do not have the same latent dimension
     """
 
     def __init__(
@@ -50,10 +65,10 @@ class LitVAE(pl.LightningModule, PlMixin):
     ):
         super().__init__()
 
-        if len(tokenizer) != encoder.emb.num_embeddings:
+        if len(tokenizer) != encoder.d_v:
             raise ValueError(
                 "tokenizer and encoder have mismatched vocabulary sizes! "
-                f"got: {len(tokenizer)} and {encoder.emb.num_embeddings}, respectively."
+                f"got: {len(tokenizer)} and {encoder.d_v}, respectively."
             )
         if encoder.d_z != decoder.d_z:
             raise ValueError(
@@ -72,9 +87,13 @@ class LitVAE(pl.LightningModule, PlMixin):
         if v_reg is None:
             self.v_reg = LinearScheduler(0, 0.1, 20)
         elif isinstance(v_reg, float):
-            self.v_reg = DummyScheduler(v_reg)
-        else:
+            self.v_reg = ConstantScheduler(v_reg)
+        elif isinstance(v_reg, Scheduler):
             self.v_reg = v_reg
+        else:
+            raise TypeError(
+                "arg 'v_reg' must be of type (None | float | Scheduler)! "
+                f"got: {type(v_reg)}")
 
         self.rec_metric = nn.CrossEntropyLoss(reduction="sum", ignore_index=self.tokenizer.PAD)
 
@@ -132,7 +151,7 @@ class LitVAE(pl.LightningModule, PlMixin):
         return self.encode(batch)
 
     def on_train_epoch_start(self):
-        self.log(f"v/{self.encoder.reg.alias}", self.v_reg.v)
+        self.log(f"v/{self.encoder.reg.name}", self.v_reg.v)
 
     def training_epoch_end(self, *args):
         self.v_reg.step()
@@ -161,3 +180,34 @@ class LitVAE(pl.LightningModule, PlMixin):
         f_unique = 0 if len(smis) == 0 else len(set(smis)) / len(smis)
 
         return f_valid, f_unique
+
+    def to_config(self) -> dict:
+        return {
+            "tokenizer": self.tokenizer.to_config(),
+            "encoder": self.encoder.to_config(),
+            "decoder": self.decoder.to_config(),
+            "lr": self.lr,
+            "v_reg": {"alias": self.v_reg.alias, "config": self.v_reg.to_config()}
+        }
+
+    @classmethod
+    def from_config(cls, config: dict) -> LitVAE:
+        """NOTE: If the encoder and decoder embedding layers have the same configuration, it is
+        assumed they are to share this layer."""
+
+        enc_emb_config = config["encoder"]["embedding"]
+        dec_emb_config = config["decoder"]["embedding"]
+
+        tok = Tokenizer.from_config(config["tokenizer"])
+        enc = CharEncoder.from_config(config["encoder"])
+        dec = CharDecoder.from_config(config["decoder"])
+        lr = config["lr"]
+
+        v_reg_alias = config["v_reg"]["alias"]
+        v_reg_config = config["v_reg"]["config"]
+        v_reg = SchedulerRegistry[v_reg_alias].from_config(v_reg_config)
+
+        if enc_emb_config == dec_emb_config:
+            enc.emb = dec.emb
+
+        return cls(tok, enc, dec, lr, v_reg)

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from abc import abstractmethod
 
 import torch
 from torch import Tensor, nn
 
+from pcmr.utils import ClassRegistry, Configurable
 
-class Regularizer(nn.Module):
+RegularizerRegistry = ClassRegistry()
+
+
+class Regularizer(nn.Module, Configurable):
     """A :class:`Regularizer` projects from the encoder output to the latent space and
     calculates the associated loss of that projection"""
 
@@ -13,9 +19,8 @@ class Regularizer(nn.Module):
         self.d_z = d_z
 
     @property
-    @abstractmethod
-    def alias(self) -> str:
-        """the alias of the regularization loss"""
+    def name(self) -> str:
+        """the name of the regularization loss"""
 
     @abstractmethod
     def setup(self, d_h: int):
@@ -31,7 +36,15 @@ class Regularizer(nn.Module):
         """Calculate both the regularized latent representation (i.e., `forward()`) and associated
         loss of the encoder output"""
 
+    def to_config(self) -> dict:
+        return {"d_z": self.d_z}
+    
+    @classmethod
+    def from_config(cls, config: dict) -> Regularizer:
+        return cls(**config)
 
+
+@RegularizerRegistry.register("dummy")
 class DummyRegularizer(Regularizer):
     """A :class:`DummyRegularizer` calculates no regularization loss"""
 
@@ -39,7 +52,7 @@ class DummyRegularizer(Regularizer):
         super().__init__(d_z)
 
     @property
-    def alias(self) -> str:
+    def name(self) -> str:
         return "ae"
 
     def setup(self, d_h: int):
@@ -52,6 +65,7 @@ class DummyRegularizer(Regularizer):
         return self(H), torch.tensor(0.0)
 
 
+@RegularizerRegistry.register("vae")
 class VariationalRegularizer(DummyRegularizer):
     """A :class:`VariationalRegularizer` uses the reparameterization trick to project into to the
     latent space and calculates the regularization loss as the KL divergence between the output and
@@ -66,7 +80,7 @@ class VariationalRegularizer(DummyRegularizer):
         super().__init__(d_z)
 
     @property
-    def alias(self) -> str:
+    def name(self) -> str:
         return "kl"
 
     def setup(self, d_h: int):
