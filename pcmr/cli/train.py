@@ -11,26 +11,19 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 from tdc.generation import MolGen
 from tdc.metadata import single_molecule_dataset_names as DATASETS
+import torch
 from torch import nn
-import torch.cuda
 import torch.utils.data
-from torchdrug.core import Registry as R
-from torchdrug.data import DataLoader
-from torchdrug.data.dataset import MoleculeDataset
+import torchdrug.data
 
-from pcmr.models.gin import LitAttrMaskGIN
+from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import LitVAE, CharDecoder, CharEncoder, Tokenizer, CachedUnsupervisedDataset
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup
 from pcmr.models.vae.data import UnsupervisedDataset
 
 logger = logging.getLogger(__name__)
-
-
-@R.register("datasets.Custom")
-class CustomDataset(MoleculeDataset):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+torch.set_float32_matmul_precision('high')
 
 
 class TrainSubcommand(Subcommand):
@@ -64,8 +57,8 @@ class TrainSubcommand(Subcommand):
             "-c",
             "--num-workers",
             type=int,
-            default=0,
-            help="the number of workers to use for data loading",
+            default=-1,
+            help="the number of workers to use for data loading. 0 means no parallel dataloading and -1 means to cache the featurizations. NOTE: caching may not be possible for some datasets due to memory constraints on your machine.",
         )
         parser.add_argument(
             "-g",
@@ -141,6 +134,7 @@ class TrainSubcommand(Subcommand):
             filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
             monitor="val/loss",
             auto_insert_metric_name=False,
+            save_last=True
         )
         early_stopping = EarlyStopping("val/loss")
 
@@ -154,8 +148,8 @@ class TrainSubcommand(Subcommand):
         )
 
         batch_size = 256
-        train_loader = DataLoader(train_dset, batch_size, num_workers=num_workers)
-        val_loader = DataLoader(val_dset, batch_size, num_workers=num_workers)
+        train_loader = torchdrug.data.DataLoader(train_dset, batch_size, num_workers=num_workers)
+        val_loader = torchdrug.data.DataLoader(val_dset, batch_size, num_workers=num_workers)
 
         if chkpt:
             logger.info(f"Resuming training from checkpoint '{chkpt}'")
@@ -183,36 +177,41 @@ class TrainSubcommand(Subcommand):
         decoder = CharDecoder(tokenizer, embedding)
         model = LitVAE(tokenizer, encoder, decoder)
 
-        dataset = CachedUnsupervisedDataset(smis, tokenizer)
+        cache = num_workers == -1
+        dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset
+        dataset = dset_cls(smis, tokenizer)
+
         n_train = int(0.8 * len(dataset))
         n_val = len(dataset) - n_train
         train_dset, val_dset = torch.utils.data.random_split(dataset, [n_train, n_val])
 
+        logger = WandbLogger(project=f"{MODEL_NAME}-{dataset_name}")
         checkpoint = ModelCheckpoint(
             dirpath=f"chkpts/{MODEL_NAME}/{dataset_name}/{TODAY}",
             filename="step={step:0.2e}-loss={val/loss:0.2f}-acc={val/accuracy:.2f}",
             monitor="val/loss",
             auto_insert_metric_name=False,
+            save_last=True
         )
-        early_stopping = EarlyStopping("val/loss")
-
+        early_stopping = EarlyStopping("val/loss", patience=5)
         trainer = pl.Trainer(
-            WandbLogger(project=f"{MODEL_NAME}-{dataset_name}"),
+            logger,
             callbacks=[checkpoint, early_stopping],
             accelerator="gpu" if gpus else "cpu",
             devices=gpus or 1,
-            check_val_every_n_epoch=3,
+            check_val_every_n_epoch=1,
             max_epochs=100,
         )
 
         batch_size = 256
-        train_loader = DataLoader(
+        num_workers = 0 if cache else num_workers
+        train_loader = torch.utils.data.DataLoader(
             train_dset,
             batch_size,
             num_workers=num_workers,
             collate_fn=UnsupervisedDataset.collate_fn,
         )
-        val_loader = DataLoader(
+        val_loader = torch.utils.data.DataLoader(
             val_dset, batch_size, num_workers=num_workers, collate_fn=UnsupervisedDataset.collate_fn
         )
 
