@@ -6,6 +6,7 @@ import numpy as np
 
 from pcmr.utils import ClassRegistry
 
+FeaturizerRegistry = ClassRegistry()
 
 class FeaturizerBase(Callable[[Iterable[str], np.ndarray]]):
     def __init__(self, *args, **kwargs):
@@ -15,5 +16,5 @@ class FeaturizerBase(Callable[[Iterable[str], np.ndarray]]):
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         pass
 
-
-FeaturizerRegistry = ClassRegistry()
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}"

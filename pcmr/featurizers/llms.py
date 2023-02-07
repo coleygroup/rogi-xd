@@ -29,8 +29,11 @@ class HuggingFaceFeaturizer(FeaturizerBase):
         """the index of the token from which to calculate word embeddings"""
 
     def __init__(
-        self, batch_size: Optional[int] = None, device: Union[int, str, torch.device, None] = None
-    ) -> None:
+        self,
+        batch_size: Optional[int] = None,
+        device: Union[int, str, torch.device, None] = None,
+        **kwargs
+    ):
         self.batch_size = batch_size
         self.fe = pipeline(
             "feature-extraction",

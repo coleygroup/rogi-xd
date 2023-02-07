@@ -41,7 +41,7 @@ def bounded(lo=None, hi=None):
     return decorator
 
 
-def dataset_and_task(value) -> tuple[str, Optional[str]]:
+def dataset_and_task(value: str) -> tuple[str, Optional[str]]:
     tokens = value.split("/")
 
     if len(tokens) == 1:

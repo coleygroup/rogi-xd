@@ -17,10 +17,11 @@ import torch.utils.data
 import torchdrug.data
 
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
-from pcmr.models.vae import LitVAE, CharDecoder, CharEncoder, Tokenizer, CachedUnsupervisedDataset
+from pcmr.models.vae import (
+    LitVAE, CharDecoder, CharEncoder, Tokenizer, UnsupervisedDataset, CachedUnsupervisedDataset
+)
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup
-from pcmr.models.vae.data import UnsupervisedDataset
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision("high")
@@ -97,7 +98,7 @@ class TrainSubcommand(Subcommand):
         else:
             raise RuntimeError("Help! I've fallen and I can't get up! << CALL LIFEALERT >>")
 
-        model, output = func(
+        model, output_dir = func(
             smis,
             args.dataset or args.input.stem,
             args.output,
@@ -105,15 +106,14 @@ class TrainSubcommand(Subcommand):
             args.gpus,
             args.chkpt,
         )
-        output.parent.mkdir(parents=True, exist_ok=True)
-        torch.save(model.state_dict(), output)
-        logger.info(f"Saved {args.model} model to {output}")
+        model.save(output_dir)
+        logger.info(f"Saved {args.model} model to {output_dir}")
 
     @staticmethod
     def train_gin(
         smis: list[str],
         dataset_name: str,
-        output: Optional[PathLike],
+        output_dir: Optional[PathLike],
         num_workers: int = 0,
         gpus: Optional[int] = None,
         chkpt: Optional[PathLike] = None,
@@ -155,15 +155,15 @@ class TrainSubcommand(Subcommand):
             logger.info(f"Resuming training from checkpoint '{chkpt}'")
 
         trainer.fit(model, train_loader, val_loader, ckpt_path=chkpt)
-        output = output or f"models/{MODEL_NAME}/{dataset_name}.pt"
+        output_dir = output_dir or f"models/{MODEL_NAME}/{dataset_name}"
 
-        return model, Path(output)
+        return model, Path(output_dir)
 
     @staticmethod
     def train_vae(
         smis: list[str],
         dataset_name: str,
-        output: Optional[PathLike],
+        output_dir: Optional[PathLike],
         num_workers: int = 0,
         gpus: Optional[int] = None,
         chkpt: Optional[PathLike] = None,
@@ -219,6 +219,6 @@ class TrainSubcommand(Subcommand):
             logger.info(f"Resuming training from checkpoint '{chkpt}'")
 
         trainer.fit(model, train_loader, val_loader, ckpt_path=chkpt)
-        output = output or f"models/{MODEL_NAME}/{dataset_name}.pt"
+        output_dir = output_dir or f"models/{MODEL_NAME}/{dataset_name}"
 
-        return model, Path(output)
+        return model, Path(output_dir)

@@ -1,6 +1,7 @@
 from argparse import ArgumentParser, FileType, Namespace
 from itertools import repeat
 import logging
+from os import PathLike
 from pathlib import Path
 from typing import Iterable, Optional
 
@@ -9,6 +10,8 @@ import pandas as pd
 
 from pcmr.data import data
 from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
+from pcmr.models.gin.model import LitAttrMaskGIN
+from pcmr.models.vae.model import LitVAE
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
 from pcmr.cli.command import Subcommand
@@ -39,7 +42,7 @@ def calc_rogi(
             results.append(RogiCalculationResult(f, dt, n_valid, score))
     else:
         score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
-        result = RogiCalculationResult(f, dt, n_valid, score)
+        result = RogiCalculationResult(f.alias, dt, n_valid, score)
         results = list(repeat(result, repeats))
 
     return results
@@ -51,8 +54,9 @@ class RogiSubcommand(Subcommand):
 
     @classmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
-        parser.add_argument("-i", "--input", type=FileType("r"))
-        parser.add_argument(
+        xor_group = parser.add_mutually_exclusive_group(required=True)
+        xor_group.add_argument("-i", "--input", type=Path, help="A plaintext file containing a dataset/task entry on each line. Mutually exclusive with the '--datasets-tasks' argument")
+        xor_group.add_argument(
             "-d",
             "--datasets-tasks",
             "--dt",
@@ -63,45 +67,71 @@ class RogiSubcommand(Subcommand):
         )
         parser.add_argument(
             "-f",
-            "--featurizers",
+            "--featurizer",
             type=lambda s: s.lower(),
-            nargs="+",
             choices=FeaturizerRegistry.keys(),
         )
         parser.add_argument("-r", "--repeats", type=int, default=1)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
         parser.add_argument("-o", "--output", type=Path)
         parser.add_argument(
+            "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
+        )
+        parser.add_argument(
             "-b",
             "--batch-size",
             type=int,
             help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
         )
+        parser.add_argument("-c", "--num-workers", type=int, default=0)
 
         return parser
 
     @staticmethod
     def func(args: Namespace):
-        exit()
-        if args.input is not None:
-            args.datasets_tasks.extend([dataset_and_task(line.strip()) for line in args.input])
+        if args.input:
+            args.datasets_tasks.extend(
+                [dataset_and_task(l) for l in args.input.read_text().splitlines()]
+            )
+
+        f = RogiSubcommand.build_featurizer(
+            args.featurizer, args.batch_size, args.model_dir, args.num_workers
+        )
 
         rows = []
-        for f in args.featurizers:
-            f = FeaturizerRegistry[f](args.batch_size)
-            for d, t in args.datasets_tasks:
-                logger.info(f"running dataset/task={d}/{t}, features={f}")
-                try:
-                    results = calc_rogi(f, d, t, args.N, args.repeats)
-                    rows.extend(results)
-                except FloatingPointError as e:
-                    logger.error(
-                        f"ROGI calculation failed! dataset/task={d}/{t}, features={f}. Skipping..."
-                    )
-                    logger.error(e)
+        for d, t in args.datasets_tasks:
+            logger.debug(f"running dataset/task={d}/{t}, features={f}")
+            try:
+                results = calc_rogi(f, d, t, args.N, args.repeats)
+                rows.extend(results)
+            except FloatingPointError as e:
+                logger.error(
+                    f"ROGI calculation failed! dataset/task={d}/{t}, features={f}. Skipping..."
+                )
+                logger.error(e)
 
         df = pd.DataFrame(rows)
         print(df)
         df.to_csv(args.output, index=False)
 
         logger.info(f"Saved output CSV to '{args.output}'")
+
+    @staticmethod
+    def build_featurizer(
+        featurizer: str,
+        batch_size: Optional[int] = None,
+        model_dir: Optional[PathLike] = None,
+        num_workers: int = 0
+    ) -> FeaturizerBase:
+        featurizer_cls = FeaturizerRegistry[featurizer]
+        if featurizer == "vae":
+            model = LitVAE.load(model_dir)
+        elif featurizer == "gin":
+            model = LitAttrMaskGIN.load(model_dir)
+        elif featurizer in ("chemgpt", "chemberta"):
+            model = None
+        else:
+            model = None
+
+        f = featurizer_cls(model=model, batch_size=batch_size, num_workers=num_workers)
+        return f

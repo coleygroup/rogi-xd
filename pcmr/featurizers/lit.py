@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import pytorch_lightning as pl
@@ -8,16 +8,20 @@ import torch.utils.data
 import torchdrug.data
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
-from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
+from pcmr.models.gin import CustomDataset
 from pcmr.models.vae.data import UnsupervisedDataset
 
 
 class LitFeaturizer(FeaturizerBase):
     def __init__(
-        self, model: LitAttrMaskGIN, *args, batch_size: int = 256, num_workers: int = 0, **kwargs
+        self,
+        model: pl.LightningModule,
+        batch_size: Optional[int] = 256,
+        num_workers: int = 0,
+        **kwargs
     ):
         self.model = model
-        self.batch_size = batch_size
+        self.batch_size = batch_size or 256
         self.num_workers = num_workers
 
     @torch.inference_mode()
@@ -31,7 +35,7 @@ class LitFeaturizer(FeaturizerBase):
         return torch.cat(Xs).numpy().astype(float)
 
     @abstractmethod
-    def build_dataloader(self, smis) -> torch.utils.data.DataLoader:
+    def build_dataloader(self, smis: list[str]) -> torch.utils.data.DataLoader:
         pass
 
 
@@ -49,4 +53,6 @@ class VAEFeaturizer(LitFeaturizer):
     def build_dataloader(self, smis):
         dataset = UnsupervisedDataset(smis, self.model.tokenizer)
 
-        return torch.utils.data.DataLoader(dataset, self.batch_size, num_workers=self.num_workers)
+        return torch.utils.data.DataLoader(
+            dataset, self.batch_size, num_workers=self.num_workers, collate_fn=dataset.collate_fn
+        )

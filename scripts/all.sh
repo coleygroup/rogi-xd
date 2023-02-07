@@ -1,10 +1,13 @@
-output=$1
-input=${2:-scripts/datasets.all.txt}
-featurizers=${3:-'chemberta'}
-N=${4:-10000}
-repeats=${5:-5}
+input=${1:-scripts/datasets.all.txt}
+N=${2:-10000}
+repeats=${3:-5}
 
-logfile=logs/`date +%FT%H:%M:%S`.log
-mkdir -p `dirname $logfile`
+featurizer=VAE
+output=results/data/${featurizer}.txt
+model_dir=models/${featurizer}/zinc
+pcmr rogi -i ${input} -o $output -f $featurizer -N$N -r $repeats -m ${model_dir} -vvvv --log
 
-pcmr -vvvv --log $logfile rogi -o $output -f ${featurizers} -N$N --input ${input} -r $repeats
+featurizers=GIN
+output=results/data/${featurizer}.txt
+model_dir=models/${featurizer}/zinc
+pcmr rogi -i ${input} -o $output -f $featurizer -N$N -r $repeats -m ${model_dir} -vvvv --log
