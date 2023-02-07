@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import json
-from os import PathLike
-from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import pytorch_lightning as pl
@@ -12,16 +9,20 @@ from torchdrug.models import GIN
 from torchdrug.layers import MLP
 from torchdrug.data import constant
 from torchdrug.tasks import AttributeMasking
+from torchdrug.data import feature
 
 from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.utils import Configurable
+
+DEFAULT_ATOM_DIM  = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1
+DEFAULT_BOND_DIM = sum(len(v) for v in [feature.bond_type_vocab, feature.bond_dir_vocab])
 
 
 class LitAttrMaskGIN(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     def __init__(
         self,
-        d_v: int,
-        d_e: int,
+        d_v: int = DEFAULT_ATOM_DIM,
+        d_e: int = DEFAULT_BOND_DIM,
         d_h: Optional[list[int]] = None,
         gin_kwargs: Optional[Mapping[str, Any]] = None,
         mask_rate: float = 0.15,
@@ -33,7 +34,7 @@ class LitAttrMaskGIN(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoad
         self.d_e = d_e
         self.d_h = d_h or [300, 300, 300, 300, 300]
         self.gin_kwargs = gin_kwargs or dict(batch_norm=True, readout="mean")
-        model = GIN(d_v, d_h, d_e, **self.gin_kwargs)
+        model = GIN(self.d_v, self.d_h, self.d_e, **self.gin_kwargs)
         task = AttributeMasking(model, mask_rate)
         self.task = self.connect_task(task, model)
         self.lr = lr
