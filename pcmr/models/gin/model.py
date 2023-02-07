@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import json
+from os import PathLike
+from pathlib import Path
 from typing import Any, Mapping, Optional
 
 import pytorch_lightning as pl
@@ -8,33 +13,35 @@ from torchdrug.layers import MLP
 from torchdrug.data import constant
 from torchdrug.tasks import AttributeMasking
 
-from pcmr.models.utils import PlMixin
+from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
+from pcmr.utils import Configurable
 
 
-class LitAttrMaskGIN(pl.LightningModule, PlMixin):
+class LitAttrMaskGIN(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     def __init__(
         self,
         d_v: int,
         d_e: int,
         d_h: Optional[list[int]] = None,
         gin_kwargs: Optional[Mapping[str, Any]] = None,
-        view: str = "atom",
         mask_rate: float = 0.15,
         lr: float = 3e-4,
     ):
         super().__init__()
 
-        d_h = d_h or [300, 300, 300, 300, 300]
-        gin_kwargs = gin_kwargs or dict(batch_norm=True, readout="mean")
-        model = GIN(d_v, d_h, d_e, **gin_kwargs)
+        self.d_v = d_v
+        self.d_e = d_e
+        self.d_h = d_h or [300, 300, 300, 300, 300]
+        self.gin_kwargs = gin_kwargs or dict(batch_norm=True, readout="mean")
+        model = GIN(d_v, d_h, d_e, **self.gin_kwargs)
         task = AttributeMasking(model, mask_rate)
-        self.task = self.connect_task(task, view, model)
+        self.task = self.connect_task(task, model)
         self.lr = lr
 
-    def connect_task(self, task, view, model):
-        task.view = view
+    def connect_task(self, task, model):
+        task.view = "atom"
         d_o = model.node_output_dim if hasattr(model, "node_output_dim") else model.output_dim
-        n_label = constant.NUM_ATOM if view == "atom" else constant.NUM_AMINO_ACID
+        n_label = constant.NUM_ATOM
         task.mlp = MLP(d_o, [d_o] * (task.num_mlp_layer - 1) + [n_label])
 
         return task
@@ -65,3 +72,17 @@ class LitAttrMaskGIN(pl.LightningModule, PlMixin):
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.task.parameters(), self.lr)
+
+    def to_config(self) -> dict:
+        return {
+            "d_v": self.d_v,
+            "d_e": self.d_e,
+            "d_h": self.d_h,
+            "gin_kwargs": self.gin_kwargs,
+            "mask_rate": self.task.mask_rate,
+            "lr": self.lr
+        }
+
+    @classmethod
+    def from_config(cls, config: dict) -> LitAttrMaskGIN:
+        return cls(**config)

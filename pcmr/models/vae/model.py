@@ -1,4 +1,7 @@
 from __future__ import annotations
+import json
+from os import PathLike
+from pathlib import Path
 
 from typing import Sequence, Union
 import warnings
@@ -10,7 +13,7 @@ import torch
 from torch import Tensor, optim, nn
 from torch.nn.utils import rnn
 
-from pcmr.models.utils import PlMixin
+from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import CharEncoder, CharDecoder
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, ConstantScheduler, SchedulerRegistry
@@ -21,7 +24,7 @@ warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarnin
 warnings.filterwarnings("ignore", "dropout option adds dropout after all but last", UserWarning)
 
 
-class LitVAE(pl.LightningModule, Configurable, PlMixin):
+class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     """A variational autoencoder for learning latent representations of strings using
     character-based RNN encoder/decoder pair
 
