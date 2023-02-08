@@ -39,7 +39,7 @@ def calc_rogi(
         for _ in range(repeats):
             df_sample = df.sample(n)
             score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
-            results.append(RogiCalculationResult(f, dt, n_valid, score))
+            results.append(RogiCalculationResult(f.alias, dt, n_valid, score))
     else:
         score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
         result = RogiCalculationResult(f.alias, dt, n_valid, score)
