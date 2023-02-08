@@ -55,3 +55,7 @@ there should be two new directories: `models/GIN/zinc` and `models/VAE/zinc`
 ```
 ./scripts/all.sh
 ```
+
+### Figures
+
+See the [`plots.ipynb`](./plots.ipynb) notebook

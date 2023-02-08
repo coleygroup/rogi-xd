@@ -190,7 +190,8 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
             "encoder": self.encoder.to_config(),
             "decoder": self.decoder.to_config(),
             "lr": self.lr,
-            "v_reg": {"alias": self.v_reg.alias, "config": self.v_reg.to_config()}
+            "v_reg": {"alias": self.v_reg.alias, "config": self.v_reg.to_config()},
+            "shared_enb": self.encoder.emb is self.decoder.emb
         }
 
     @classmethod
@@ -210,7 +211,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         v_reg_config = config["v_reg"]["config"]
         v_reg = SchedulerRegistry[v_reg_alias].from_config(v_reg_config)
 
-        if enc_emb_config == dec_emb_config:
+        if config["shared_emb"] and enc_emb_config == dec_emb_config:
             enc.emb = dec.emb
 
         return cls(tok, enc, dec, lr, v_reg)
