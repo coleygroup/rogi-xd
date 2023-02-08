@@ -50,6 +50,10 @@ class CharEncoder(nn.Module, Configurable):
     def d_z(self) -> int:
         return self.reg.d_z
 
+    @property
+    def PAD(self) -> int:
+        return self.emb.padding_idx
+    
     def _forward(self, xs: Sequence[Tensor]) -> Tensor:
         xs_emb = [self.emb(x) for x in xs]
         X = rnn.pack_sequence(xs_emb, enforce_sorted=False)

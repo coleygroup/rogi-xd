@@ -28,9 +28,9 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     """A variational autoencoder for learning latent representations of strings using
     character-based RNN encoder/decoder pair
 
-    NOTE: The encoder and decoder both utilize an embedding layer, and in a proper VAE, this layer
-    is shared between the two modules. Though this is not strictly required for a VAE to work, it
-    likely won't work very well if the two are independent
+    NOTE: The encoder and decoder both utilize an embedding layer, and in a typical VAE, this layer
+    is shared between the two modules. This is not strictly required for a VAE to work and is thus
+    not enforced
 
     Parameters
     ----------
@@ -53,9 +53,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     Raises
     ------
     ValueError
-        
-        * if the supplied Tokenizer and CharEncoder do not have the same vocabulary size
-        * if the supplied CharEncoder and CharDecoder do not have the same latent dimension
+        if the supplied CharEncoder and CharDecoder do not have the same latent dimension
     """
 
     def __init__(
@@ -98,7 +96,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
                 "arg 'v_reg' must be of type (None | float | Scheduler)! "
                 f"got: {type(v_reg)}")
 
-        self.rec_metric = nn.CrossEntropyLoss(reduction="sum", ignore_index=self.tokenizer.PAD)
+        self.rec_metric = nn.CrossEntropyLoss(reduction="sum", ignore_index=self.encoder.PAD)
 
     @property
     def d_z(self) -> int:
@@ -126,7 +124,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
-        X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
+        X_packed = rnn.pad_sequence(xs, True, self.encoder.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
 
@@ -143,7 +141,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
-        X_packed = rnn.pad_sequence(xs, True, self.tokenizer.PAD)[:, 1:].contiguous().view(-1)
+        X_packed = rnn.pad_sequence(xs, True, self.encoder.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
         acc = sum(map(torch.equal, xs, self.reconstruct(xs))) / len(xs)
