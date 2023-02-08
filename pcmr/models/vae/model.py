@@ -15,7 +15,7 @@ from torch.nn.utils import rnn
 
 from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.models.vae.tokenizer import Tokenizer
-from pcmr.models.vae.modules import CharEncoder, CharDecoder
+from pcmr.models.vae.modules import RnnEncoder, RnnDecoder
 from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, ConstantScheduler, SchedulerRegistry
 from pcmr.utils import Configurable
 
@@ -35,8 +35,8 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     Parameters
     ----------
     tokenizer : Tokenizer
-        the :class:`~pcmr.models.vae.tokenizer.Tokenizer` to use when measuring quality during
-        validation
+        the :class:`~pcmr.models.vae.tokenizer.Tokenizer` to use for measuring generation quality
+        during validation
     encoder: CharEncoder
         the encoder module to project from tokenized sequences into the latent space
     decoder: CharDecoder
@@ -59,28 +59,29 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
     def __init__(
         self,
         tokenizer: Tokenizer,
-        encoder: CharEncoder,
-        decoder: CharDecoder,
+        encoder: RnnEncoder,
+        decoder: RnnDecoder,
         lr: float = 3e-4,
         v_reg: Union[float, Scheduler, None] = None,
     ):
         super().__init__()
 
-        if len(tokenizer) != encoder.d_v:
-            raise ValueError(
-                "tokenizer and encoder have mismatched vocabulary sizes! "
-                f"got: {len(tokenizer)} and {encoder.d_v}, respectively."
-            )
         if encoder.d_z != decoder.d_z:
             raise ValueError(
                 "'encoder' and 'decoder' have mismatched latent dimension sizes! "
                 f"got: {encoder.d_z} and {decoder.d_z}, respectively."
             )
-        if encoder.emb is not decoder.emb:
-            warnings.warn(
-                "encoder and decoder are using different embedding layers! Is this intentional?"
+        if len(tokenizer) != encoder.d_v:
+            raise warnings.warn(
+                "tokenizer and encoder have mismatched vocabulary sizes! "
+                f"got: {len(tokenizer)} and {encoder.d_v}, respectively."
             )
-
+        if len(tokenizer) != decoder.d_v:
+            raise warnings.warn(
+                "tokenizer and decoder have mismatched vocabulary sizes! "
+                f"got: {len(tokenizer)} and {decoder.d_v}, respectively."
+            )
+        
         self.tokenizer = tokenizer
         self.encoder = encoder
         self.decoder = decoder
@@ -124,7 +125,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
-        X_packed = rnn.pad_sequence(xs, True, self.encoder.PAD)[:, 1:].contiguous().view(-1)
+        X_packed = rnn.pad_sequence(xs, True, self.decoder.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
 
@@ -141,7 +142,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         X_logits = self.decoder.forward_step(xs, Z)
 
         X_logits_packed = X_logits[:, :-1].contiguous().view(-1, X_logits.shape[-1])
-        X_packed = rnn.pad_sequence(xs, True, self.encoder.PAD)[:, 1:].contiguous().view(-1)
+        X_packed = rnn.pad_sequence(xs, True, self.decoder.PAD)[:, 1:].contiguous().view(-1)
 
         l_rec = self.rec_metric(X_logits_packed, X_packed) / len(xs)
         acc = sum(map(torch.equal, xs, self.reconstruct(xs))) / len(xs)
@@ -201,8 +202,8 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         dec_emb_config = config["decoder"]["embedding"]
 
         tok = Tokenizer.from_config(config["tokenizer"])
-        enc = CharEncoder.from_config(config["encoder"])
-        dec = CharDecoder.from_config(config["decoder"])
+        enc = RnnEncoder.from_config(config["encoder"])
+        dec = RnnDecoder.from_config(config["decoder"])
         lr = config["lr"]
 
         v_reg_alias = config["v_reg"]["alias"]

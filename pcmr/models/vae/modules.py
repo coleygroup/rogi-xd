@@ -1,19 +1,17 @@
 from __future__ import annotations
 
-from typing import Optional, Sequence
-import warnings
+from typing import Iterable, Optional, Sequence
 
 import torch
 from torch import Tensor, nn
 from torch.nn.utils import rnn
 
 from pcmr.utils import Configurable
-from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.regularizers import Regularizer, VariationalRegularizer, RegularizerRegistry
 from pcmr.models.vae.samplers import Sampler, ModeSampler, SamplerRegistry
 
 
-class CharEncoder(nn.Module, Configurable):
+class RnnEncoder(nn.Module, Configurable):
     def __init__(
         self,
         embedding: nn.Embedding,
@@ -54,7 +52,7 @@ class CharEncoder(nn.Module, Configurable):
     def PAD(self) -> int:
         return self.emb.padding_idx
     
-    def _forward(self, xs: Sequence[Tensor]) -> Tensor:
+    def _forward(self, xs: Iterable[Tensor]) -> Tensor:
         xs_emb = [self.emb(x) for x in xs]
         X = rnn.pack_sequence(xs_emb, enforce_sorted=False)
 
@@ -86,7 +84,7 @@ class CharEncoder(nn.Module, Configurable):
         return config
 
     @classmethod
-    def from_config(cls, config: dict) -> CharEncoder:
+    def from_config(cls, config: dict) -> RnnEncoder:
         emb = nn.Embedding(**config["embedding"])
         reg_alias = config["regularizer"]["alias"]
         reg_config = config["regularizer"]["config"]
@@ -96,10 +94,11 @@ class CharEncoder(nn.Module, Configurable):
         return cls(**config)
 
 
-class CharDecoder(nn.Module, Configurable):
+class RnnDecoder(nn.Module, Configurable):
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        SOS: int,
+        EOS: int,
         embedding: nn.Embedding,
         d_z: int = 128,
         d_h: int = 512,
@@ -109,13 +108,8 @@ class CharDecoder(nn.Module, Configurable):
     ):
         super().__init__()
 
-        if len(tokenizer) != embedding.num_embeddings:
-            warnings.warn(
-                "tokenizer and embedding have mismatched vocabulary sizes!"
-                f"got: {len(tokenizer)} and {embedding.num_embeddings}, respectively."
-            )
-
-        self.tokenizer = tokenizer
+        self.SOS = SOS
+        self.EOS = EOS
         self.emb = embedding
         self.d_z = d_z
 
@@ -128,9 +122,13 @@ class CharDecoder(nn.Module, Configurable):
     def d_v(self) -> int:
         return self.emb.num_embeddings
     
+    @property
+    def PAD(self) -> int:
+        return self.emb.padding_idx
+    
     def forward_step(self, xs: Sequence[Tensor], Z: Tensor) -> Tensor:
         lengths = [len(x) for x in xs]
-        X = rnn.pad_sequence(xs, batch_first=True, padding_value=self.tokenizer.PAD)
+        X = rnn.pad_sequence(xs, batch_first=True, padding_value=self.PAD)
 
         X_emb = self.emb(X)
         X_packed = rnn.pack_padded_sequence(X_emb, lengths, batch_first=True, enforce_sorted=False)
@@ -144,9 +142,9 @@ class CharDecoder(nn.Module, Configurable):
     def forward(self, Z: Tensor, max_len: int = 80) -> list[Tensor]:
         n = len(Z)
 
-        x_t = torch.tensor(self.tokenizer.SOS, device=Z.device).repeat(n)
-        X_gen = torch.tensor([self.tokenizer.PAD], device=Z.device).repeat(n, max_len)
-        X_gen[:, 0] = self.tokenizer.SOS
+        x_t = torch.tensor(self.SOS, device=Z.device).repeat(n)
+        X_gen = torch.tensor([self.PAD], device=Z.device).repeat(n, max_len)
+        X_gen[:, 0] = self.SOS
 
         seq_lens = torch.tensor([max_len], device=Z.device).repeat(n)
         eos_mask = torch.zeros(n, dtype=torch.bool, device=Z.device)
@@ -160,7 +158,7 @@ class CharDecoder(nn.Module, Configurable):
             x_t = self.sampler(logits)
             X_gen[~eos_mask, t] = x_t[~eos_mask]
 
-            eos_mask_t = ~eos_mask & (x_t == self.tokenizer.EOS)
+            eos_mask_t = ~eos_mask & (x_t == self.EOS)
             seq_lens[eos_mask_t] = t + 1
             eos_mask = eos_mask | eos_mask_t
 
@@ -168,7 +166,8 @@ class CharDecoder(nn.Module, Configurable):
 
     def to_config(self) -> dict:
         config = {
-            "tokenizer": self.tokenizer.to_config(),
+            "SOS": self.SOS,
+            "EOS": self.EOS,
             "embedding": {
                 "num_embeddings": self.emb.num_embeddings,
                 "embedding_dim": self.emb.embedding_dim
@@ -183,10 +182,9 @@ class CharDecoder(nn.Module, Configurable):
         return config
 
     @classmethod
-    def from_config(cls, config: dict) -> CharDecoder:
-        tok = Tokenizer.from_config(config["tokenizer"])
+    def from_config(cls, config: dict) -> RnnDecoder:
         emb = nn.Embedding(**config["embedding"])
         sampler = SamplerRegistry[config["sampler"]]()
         
-        config = config | dict(tokenizer=tok, embedding=emb, sampler=sampler)
+        config = config | dict(embedding=emb, sampler=sampler)
         return cls(**config)

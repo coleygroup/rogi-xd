@@ -18,7 +18,7 @@ import torchdrug.data
 
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import (
-    LitVAE, CharDecoder, CharEncoder, Tokenizer, UnsupervisedDataset, CachedUnsupervisedDataset
+    LitVAE, RnnDecoder, RnnEncoder, Tokenizer, UnsupervisedDataset, CachedUnsupervisedDataset
 )
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup
@@ -173,9 +173,9 @@ class TrainSubcommand(Subcommand):
 
         tokenizer = Tokenizer.smiles_tokenizer()
         embedding = nn.Embedding(len(tokenizer), 64, tokenizer.PAD)
-        encoder = CharEncoder(embedding)
-        decoder = CharDecoder(tokenizer, embedding)
-        model = LitVAE(tokenizer, encoder, decoder)
+        encoder = RnnEncoder(embedding)
+        decoder = RnnDecoder(tokenizer.SOS, tokenizer.EOS, embedding)
+        model = LitVAE(encoder, decoder)
 
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset
