@@ -3,6 +3,7 @@ import logging
 from typing import Iterable, Optional, Union
 
 import numpy as np
+import selfies as sf
 import torch
 from transformers import pipeline
 
@@ -52,7 +53,7 @@ class HuggingFaceFeaturizer(FeaturizerBase):
     @batch_size.setter
     def batch_size(self, batch_size: Optional[int]):
         if batch_size is None:
-            logger.info(
+            logger.debug(
                 f"'batch_size' was `None`. Using default batch size (={self.DEFAULT_BATCH_SIZE})"
             )
             batch_size = self.DEFAULT_BATCH_SIZE
@@ -87,5 +88,8 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizer):
         self.fe.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
         self.fe.tokenizer.padding_size = "left"
 
+    def __call__(self, smis: Iterable[str]) -> np.ndarray:
+        return super().__call__([sf.encoder(smi) for smi in smis])
+    
     def __str__(self) -> str:
         return "chemgpt"
