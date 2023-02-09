@@ -1,6 +1,6 @@
 # Pretrained Chemical Model Roughness
 
-## Installation
+## Setup
 
 ### Conda
 ```
