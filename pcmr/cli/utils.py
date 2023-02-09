@@ -7,7 +7,7 @@ from tdc.utils import fuzzy_search
 from pcmr.utils import AutoName
 
 
-class RogiCalculationResult(NamedTuple):
+class RogiCalculationRecord(NamedTuple):
     featurizer: str
     dataset_and_task: str
     n_valid: int

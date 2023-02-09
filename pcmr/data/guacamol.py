@@ -5,6 +5,7 @@ import pandas as pd
 from tdc import Oracle
 from tdc.generation import MolGen
 
+from pcmr.utils import CACHE_DIR
 from pcmr.data.base import DataModule
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ class GuacaMolDataModule(DataModule):
     """
 
     __seed = 42
-    __smis = MolGen("ZINC").get_data().sample(10000, random_state=__seed).smiles.tolist()
+    __smis = MolGen("ZINC", CACHE_DIR).get_data().sample(10000, random_state=__seed).smiles.tolist()
     __ORACLE_NAMES = {
         "LOGP",
         "AMLODIPINE_MPO",

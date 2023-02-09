@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from enum import Enum, auto
+import os
 from pathlib import Path
 from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union
 
@@ -9,6 +10,7 @@ import requests
 import torch
 from tqdm import tqdm
 
+CACHE_DIR = os.environ.get("PCMR_CACHE", Path.home() / ".cache" / "pcmr")
 
 class AutoName(Enum):
     def _generate_next_value_(name, start, count, last_values):
@@ -123,7 +125,7 @@ def select_device(device: Union[int, str, torch.device, None]):
 
 def download_file(url: str, path: Path, desc: str = "Downloading", chunk_size: int = 1024):
     """download the file at the specified URL to the indicated path"""
-    
+
     with (
         requests.get(url, stream=True) as response,
         open(path, "wb") as fid,

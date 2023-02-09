@@ -6,6 +6,7 @@ import pandas as pd
 from tdc.single_pred import ADME, Tox
 from tdc.utils import retrieve_label_name_list
 
+from pcmr.utils import CACHE_DIR
 from pcmr.data.base import DataModule
 from pcmr.exceptions import InvalidDatasetError
 
@@ -43,9 +44,9 @@ class TdcDataModule(DataModule):
 
         dataset_ = dataset.upper()
         if dataset_ in cls.__ADME_DATASETS:
-            df: pd.DataFrame = ADME(dataset, label_name=task).get_data("df")
+            df: pd.DataFrame = ADME(dataset, CACHE_DIR, label_name=task).get_data("df")
         elif dataset_ in cls.__TOX_DATASETS:
-            df: pd.DataFrame = Tox(dataset, label_name=task).get_data("df")
+            df: pd.DataFrame = Tox(dataset, CACHE_DIR, label_name=task).get_data("df")
         else:
             raise InvalidDatasetError(dataset, cls.datasets)
 

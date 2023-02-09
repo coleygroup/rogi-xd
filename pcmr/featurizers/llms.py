@@ -78,7 +78,7 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
 
 @FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
-    CHEMGPT = "ncfrey/ChemGPT-1.2B"
+    MODEL_ID = "ncfrey/ChemGPT-1.2B"
     DEFAULT_BATCH_SIZE = 8
     CLASSIFICATION_TOKEN_IDX = -1
 

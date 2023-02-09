@@ -14,7 +14,7 @@ class Subcommand(ABC):
 
         return parser
 
-    @classmethod
+    @staticmethod
     @abstractmethod
     def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
         pass

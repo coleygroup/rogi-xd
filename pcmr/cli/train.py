@@ -31,8 +31,8 @@ class TrainSubcommand(Subcommand):
     COMMAND = "train"
     HELP = "pretrain a VAE or GIN model via unsupervised learning"
 
-    @classmethod
-    def add_args(cls, parser: ArgumentParser) -> ArgumentParser:
+    @staticmethod
+    def add_args(parser: ArgumentParser) -> ArgumentParser:
         parser.add_argument("model", type=ModelType.get, choices=list(ModelType))
         parser.add_argument("-o", "--output", help="where to save")
         xor_group = parser.add_mutually_exclusive_group(required=True)

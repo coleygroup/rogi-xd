@@ -23,7 +23,7 @@ def main():
         "--log",
         nargs="?",
         const=DEFAULT_LOGFILE,
-        help="the path to which the log file should be written. Not specifying will this log to stdout. Adding just the flag ('--log/--logfile') will automatically log a file at 'logs/YYYY-MM-DDTHH:MM:SS.log'",
+        help="the path to which the log file should be written. Not specifying will this log to stdout. Adding just the flag ('--log/--logfile') will automatically log to a file at 'logs/YYYY-MM-DDTHH:MM:SS.log'",
     )
     parent.add_argument("-v", "--verbose", action="count", default=0, help="the verbosity level")
 
