@@ -71,7 +71,8 @@ class RnnEncoder(nn.Module, Configurable):
         config = {
             "embedding": {
                 "num_embeddings": self.emb.num_embeddings,
-                "embedding_dim": self.emb.embedding_dim
+                "embedding_dim": self.emb.embedding_dim,
+                "padding_idx": self.emb.padding_idx,
             },
             "d_h": self.rnn.hidden_size,
             "n_layers": self.rnn.num_layers,
@@ -170,7 +171,8 @@ class RnnDecoder(nn.Module, Configurable):
             "EOS": self.EOS,
             "embedding": {
                 "num_embeddings": self.emb.num_embeddings,
-                "embedding_dim": self.emb.embedding_dim
+                "embedding_dim": self.emb.embedding_dim,
+                "padding_idx": self.emb.padding_idx,
             },
             "d_z": self.d_z,
             "d_h": self.rnn.hidden_size,

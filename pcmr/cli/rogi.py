@@ -94,8 +94,9 @@ class RogiSubcommand(Subcommand):
             args.datasets_tasks.extend(
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
-        args.output = args.output or f"results/raw/{args.featurizer}.csv"
-
+        args.output = args.output or Path(f"results/raw/{args.featurizer}.csv")
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        
         f = RogiSubcommand.build_featurizer(
             args.featurizer, args.batch_size, args.model_dir, args.num_workers
         )
@@ -111,6 +112,9 @@ class RogiSubcommand(Subcommand):
                     f"ROGI calculation failed! dataset/task={d}/{t}, features={f}. Skipping..."
                 )
                 logger.error(e)
+            except KeyboardInterrupt:
+                logger.error("Interrupt detected! Exiting...")
+                break
 
         df = pd.DataFrame(rows)
         print(df)

@@ -30,7 +30,7 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
 - both the VAE and GIN were trained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
 - to train your own models, run the following command:
 
-  ```
+  ```bash
   pcmr train -m (gin | vae) -d zinc -c 8
   ```
   The models will be saved to the following directory `models/{GIN,VAE}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
@@ -42,17 +42,21 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
   - `pcmr.cli.train` 
 
 - to use the same pretrained models, run the following commands:
-```bash
-git lfs install
-git lfs pull
-```
-there should be two new directories: `models/GIN/zinc` and `models/VAE/zinc`
+
+  ```bash
+  git lfs install
+  git lfs pull
+  ```
+
+  there should be two new directories: `models/GIN/zinc` and `models/VAE/zinc`
+
 
 ## Reproducing results
 
 ### Raw data
 
-Use the `pcmr rogi` command line entry point to run your desired calculations. All results can be generated using the [`scripts/all.sh`](./scripts/all.sh) script.
+Use the `pcmr rogi` command line entry point to run your desired calculations. All results can be generated using the [`scripts/rogi.sh`](./scripts/rogi.sh) script.
+
 ```
 $ pcmr rogi --help
 usage: pcmr rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-m MODEL_DIR] [-b BATCH_SIZE]
@@ -65,7 +69,7 @@ optional arguments:
   -v, --verbose         the verbosity level
   -i INPUT, --input INPUT
                         A plaintext file containing a dataset/task entry on each line. Mutually exclusive with the '--datasets-tasks' argument
-  -d DATASETS_TASKS [DATASETS_TASKS ...], --datasets-tasks DATASETS_TASKS [DATASETS_TASKS ...], --dt DATASETS_TASKS [DATASETS_TASKS ...], --datasets DATASETS_TASKS [DATASETS_TASKS ...]
+  -d/--dt/--datasets-tasks/--datasets DATASETS_TASKS [DATASETS_TASKS ...]
   -f {descriptor,chemberta,chemgpt,gin,vae}, --featurizer {descriptor,chemberta,chemgpt,gin,vae}
   -r REPEATS, --repeats REPEATS
   -N N                  the number of data to sumbsample
