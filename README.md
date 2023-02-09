@@ -35,7 +35,7 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
   ```
   The models will be saved to the following directory `models/{GIN,VAE}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
 
-  _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you like the composable object model we used, feel free use it in your own project. I don't think a full citation is necessary, but a docstring reference and a shoutout would be appreciated :hug:.The following modules will contain most of the code you need:
+  _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you like the composable object model we used, feel free use it in your own project. I don't think a full citation is necessary, but a docstring reference and a shoutout would be appreciated :hugs:.The following modules will contain most of the code you need:
 
   - `pcmr.models.vae`
   - `pcmr.models.gin`
