@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from enum import Enum, auto
+from pathlib import Path
 from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union
 
+import requests
 import torch
+from tqdm import tqdm
 
 
 class AutoName(Enum):
@@ -117,3 +119,17 @@ class flist(list):
 
 def select_device(device: Union[int, str, torch.device, None]):
     return device or (torch.cuda.current_device() if torch.cuda.is_available() else "cpu")
+
+
+def download_file(url: str, path: Path, desc: str = "Downloading", chunk_size: int = 1024):
+    """download the file at the specified URL to the indicated path"""
+    
+    with (
+        requests.get(url, stream=True) as response,
+        open(path, "wb") as fid,
+        tqdm(desc=desc, unit="B", unit_scale=True, unit_divisor=chunk_size, leave=False) as bar
+    ):
+        bar.reset(int(response.headers['content-length']))
+        for chunk in response.iter_content(chunk_size):
+            fid.write(chunk)
+            bar.update(chunk_size)

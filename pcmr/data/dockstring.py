@@ -3,19 +3,17 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-import requests
 
 from pcmr.data.base import DataModule
+from pcmr.utils import download_file
 
 logger = logging.getLogger(__name__)
 
 DOCKSTRING_URL = "https://figshare.com/ndownloader/files/35948138"
 DOCKSTRING_PATH = Path.home() / ".cache" / "pcmr" / "dockstring.tsv"
 
-if not DOCKSTRING_PATH.exists():
-    response = requests.get(DOCKSTRING_URL, stream=True)
-    with open(DOCKSTRING_PATH, "wb") as fid:
-        [fid.write(chunk) for chunk in response.iter_content(8192)]
+if not DOCKSTRING_PATH.exists() or DOCKSTRING_PATH.stat().st_size == 0:
+    download_file(DOCKSTRING_URL, DOCKSTRING_PATH, "Downloading dockstring TSV")
 
 
 class DockstringDataModule(DataModule):
