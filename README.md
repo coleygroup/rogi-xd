@@ -8,8 +8,8 @@ conda env create -f environment.yml
 ```
 _Note_: `environment.yml` contains CUDA 11.6 versions of several packages. If you want to use this environment on CPU, replace `cu116` with `cpu` before running the above command
 ```bash
-DEVICE="cpu"
 sed -i -e 's/cu116/cpu/g' environment.yml
+conda env create -f environment.yml
 ```
 ### Manual
 _Note_: this is only recommended in the event that you'd like specify different package versions
