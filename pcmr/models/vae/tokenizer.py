@@ -30,7 +30,6 @@ class Tokenizer(Configurable):
         if any(t in st for t in tokens):
             raise ValueError("'tokens' and 'special_tokens' contain overlapping tokens!")
 
-
         self.pattern = re.compile(pattern)
         self.st = st
 

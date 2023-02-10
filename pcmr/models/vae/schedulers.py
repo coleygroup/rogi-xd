@@ -73,13 +73,13 @@ class Scheduler(ABC, Configurable):
             "v_min": self.v_min,
             "v_max": self.v_max,
             "max_steps": self.max_steps,
-            "name": self.name
+            "name": self.name,
         }
-    
+
     @classmethod
     def from_config(cls, config: dict) -> Configurable:
         return cls(**config)
-    
+
     def get_params(self) -> Iterable[tuple[str, Any]]:
         return self.to_config().items()
 
@@ -96,10 +96,7 @@ class ConstantScheduler(Scheduler):
         return np.array([v])
 
     def to_config(self) -> dict:
-        return {
-            "v": self.v,
-            "name": self.name
-        }
+        return {"v": self.v, "name": self.name}
 
 
 @SchedulerRegistry.register("linear")
@@ -192,9 +189,7 @@ class ManualScheduler(Scheduler):
         return cls(schedule)
 
     def to_config(self) -> dict:
-        return {
-            "schedule": self.schedule.tolist(),
-        }
-    
+        return {"schedule": self.schedule.tolist()}
+
     def get_params(self):
         return [self.schedule.tolist()]

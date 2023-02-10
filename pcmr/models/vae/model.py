@@ -16,7 +16,12 @@ from torch.nn.utils import rnn
 from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import RnnEncoder, RnnDecoder
-from pcmr.models.vae.schedulers import LinearScheduler, Scheduler, ConstantScheduler, SchedulerRegistry
+from pcmr.models.vae.schedulers import (
+    LinearScheduler,
+    Scheduler,
+    ConstantScheduler,
+    SchedulerRegistry,
+)
 from pcmr.utils import Configurable
 
 block = BlockLogs()
@@ -49,7 +54,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         * `Scheduler`: the scheduler to use
         * `float`: use a constant weight schedule (i.e., no scheudle)
         * `None`: use a `~pcmr.models.vae.schedulers.LinearScheduler` from 0->0.1 over 20 epochs
-    
+
     Raises
     ------
     ValueError
@@ -81,7 +86,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
                 "tokenizer and decoder have mismatched vocabulary sizes! "
                 f"got: {len(tokenizer)} and {decoder.d_v}, respectively."
             )
-        
+
         self.tokenizer = tokenizer
         self.encoder = encoder
         self.decoder = decoder
@@ -94,8 +99,8 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
             self.v_reg = v_reg
         else:
             raise TypeError(
-                "arg 'v_reg' must be of type (None | float | Scheduler)! "
-                f"got: {type(v_reg)}")
+                "arg 'v_reg' must be of type (None | float | Scheduler)! " f"got: {type(v_reg)}"
+            )
 
         self.rec_metric = nn.CrossEntropyLoss(reduction="sum", ignore_index=self.encoder.PAD)
 
@@ -190,7 +195,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
             "decoder": self.decoder.to_config(),
             "lr": self.lr,
             "v_reg": {"alias": self.v_reg.alias, "config": self.v_reg.to_config()},
-            "shared_enb": self.encoder.emb is self.decoder.emb
+            "shared_enb": self.encoder.emb is self.decoder.emb,
         }
 
     @classmethod

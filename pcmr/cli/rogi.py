@@ -56,7 +56,12 @@ class RogiSubcommand(Subcommand):
     @staticmethod
     def add_args(parser: ArgumentParser) -> ArgumentParser:
         xor_group = parser.add_mutually_exclusive_group(required=True)
-        xor_group.add_argument("-i", "--input", type=Path, help="A plaintext file containing a dataset/task entry on each line. Mutually exclusive with the '--datasets-tasks' argument")
+        xor_group.add_argument(
+            "-i",
+            "--input",
+            type=Path,
+            help="A plaintext file containing a dataset/task entry on each line. Mutually exclusive with the '--datasets-tasks' argument",
+        )
         xor_group.add_argument(
             "-d",
             "--datasets-tasks",
@@ -67,14 +72,16 @@ class RogiSubcommand(Subcommand):
             default=list(),
         )
         parser.add_argument(
-            "-f",
-            "--featurizer",
-            type=lambda s: s.lower(),
-            choices=FeaturizerRegistry.keys(),
+            "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
         parser.add_argument("-r", "--repeats", type=int, default=1)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
-        parser.add_argument("-o", "--output", type=Path, help="the to which results should be written. If unspecified, will write to 'results/raw/FEATURIZEER.csv'")
+        parser.add_argument(
+            "-o",
+            "--output",
+            type=Path,
+            help="the to which results should be written. If unspecified, will write to 'results/raw/FEATURIZEER.csv'",
+        )
         parser.add_argument(
             "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
         )
@@ -84,7 +91,13 @@ class RogiSubcommand(Subcommand):
             type=int,
             help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
         )
-        parser.add_argument("-c", "--num-workers", type=int, default=0, help="the number of CPUs to parallelize data loading over, if possible.")
+        parser.add_argument(
+            "-c",
+            "--num-workers",
+            type=int,
+            default=0,
+            help="the number of CPUs to parallelize data loading over, if possible.",
+        )
 
         return parser
 
@@ -96,7 +109,7 @@ class RogiSubcommand(Subcommand):
             )
         args.output = args.output or Path(f"results/raw/{args.featurizer}.csv")
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        
+
         f = RogiSubcommand.build_featurizer(
             args.featurizer, args.batch_size, args.model_dir, args.num_workers
         )
@@ -125,7 +138,7 @@ class RogiSubcommand(Subcommand):
         featurizer: str,
         batch_size: Optional[int] = None,
         model_dir: Optional[PathLike] = None,
-        num_workers: int = 0
+        num_workers: int = 0,
     ) -> FeaturizerBase:
         featurizer_cls = FeaturizerRegistry[featurizer]
         if featurizer == "vae":

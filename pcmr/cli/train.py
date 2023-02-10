@@ -18,7 +18,12 @@ import torchdrug.data
 
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import (
-    LitVAE, RnnDecoder, RnnEncoder, Tokenizer, UnsupervisedDataset, CachedUnsupervisedDataset
+    LitVAE,
+    RnnDecoder,
+    RnnEncoder,
+    Tokenizer,
+    UnsupervisedDataset,
+    CachedUnsupervisedDataset,
 )
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup

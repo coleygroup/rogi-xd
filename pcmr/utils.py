@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 CACHE_DIR = os.environ.get("PCMR_CACHE", Path.home() / ".cache" / "pcmr")
 
+
 class AutoName(Enum):
     def _generate_next_value_(name, start, count, last_values):
         return name.lower()
@@ -106,17 +107,17 @@ class Configurable(Protocol):
 
 #     def to_config(self, obj: Configurable):
 #         return {"alias": obj.alias, "config": obj.to_config()}
-    
+
 #     def from_config(self, config):
 #         alias = config["v_reg"]["alias"]
 #         cls_config = config["v_reg"]["config"]
-        
+
 #         return self.registry[alias].from_config(cls_config)
 
 
 class flist(list):
     def __format__(self, format_spec):
-        fmt = lambda xs: ', '.join(f'{x:{format_spec}}' for x in xs)
+        fmt = lambda xs: ", ".join(f"{x:{format_spec}}" for x in xs)
         if len(self) >= 6:
             s = f"[{fmt(self[:3])}, ..., {fmt(self[-3:])}]"
         else:
@@ -138,9 +139,9 @@ def download_file(url: str, path: Path, desc: str = "Downloading", chunk_size: i
     with (
         requests.get(url, stream=True) as response,
         open(path, "wb") as fid,
-        tqdm(desc=desc, unit="B", unit_scale=True, unit_divisor=chunk_size, leave=False) as bar
+        tqdm(desc=desc, unit="B", unit_scale=True, unit_divisor=chunk_size, leave=False) as bar,
     ):
-        bar.reset(int(response.headers['content-length']))
+        bar.reset(int(response.headers["content-length"]))
         for chunk in response.iter_content(chunk_size):
             fid.write(chunk)
             bar.update(chunk_size)

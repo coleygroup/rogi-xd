@@ -43,6 +43,7 @@ class Sampler(nn.Module, Configurable):
     def from_config(cls, config: dict) -> Sampler:
         return cls(**config)
 
+
 @SamplerRegistry.register("mode")
 class ModeSampler(Sampler):
     """A `ModeSampler` selects the index of the mode of the distribution"""
@@ -77,7 +78,7 @@ class NoisySampler(Sampler):
 
     def to_config(self) -> dict:
         raise NotImplementedError(f"{self.alias} can not be serialized!")
-    
+
     @classmethod
     def from_config(cls, config: dict) -> Sampler:
         sampler = config["sampler"]

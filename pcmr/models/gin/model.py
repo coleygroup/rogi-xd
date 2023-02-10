@@ -14,7 +14,7 @@ from torchdrug.data import feature
 from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.utils import Configurable
 
-DEFAULT_ATOM_DIM  = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1
+DEFAULT_ATOM_DIM = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1
 DEFAULT_BOND_DIM = sum(len(v) for v in [feature.bond_type_vocab, feature.bond_dir_vocab])
 
 
@@ -81,7 +81,7 @@ class LitAttrMaskGIN(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoad
             "d_h": self.d_h,
             "gin_kwargs": self.gin_kwargs,
             "mask_rate": self.task.mask_rate,
-            "lr": self.lr
+            "lr": self.lr,
         }
 
     @classmethod

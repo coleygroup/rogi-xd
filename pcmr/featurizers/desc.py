@@ -41,7 +41,7 @@ class DescriptorFeauturizer(FeaturizerBase):
     @property
     def descs(self) -> list[str]:
         return self.__names
-    
+
     @descs.setter
     def descs(self, descs: Iterable[str]):
         self.__names = []
@@ -57,10 +57,10 @@ class DescriptorFeauturizer(FeaturizerBase):
 
         if len(invalid_names) > 0:
             logger.info(f"Ignored invalid names: {invalid_names}.")
-            
+
     def __len__(self) -> int:
         return len(self.__funcs)
-    
+
     def __call__(self, smis):
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
         xss = [[func(mol) for func in self.__funcs] for mol in tqdm(mols, leave=False)]

@@ -43,7 +43,7 @@ class RnnEncoder(nn.Module, Configurable):
     def d_v(self) -> int:
         """The size of the input vocabulary"""
         return self.emb.num_embeddings
-    
+
     @property
     def d_z(self) -> int:
         return self.reg.d_z
@@ -51,7 +51,7 @@ class RnnEncoder(nn.Module, Configurable):
     @property
     def PAD(self) -> int:
         return self.emb.padding_idx
-    
+
     def _forward(self, xs: Iterable[Tensor]) -> Tensor:
         xs_emb = [self.emb(x) for x in xs]
         X = rnn.pack_sequence(xs_emb, enforce_sorted=False)
@@ -79,7 +79,7 @@ class RnnEncoder(nn.Module, Configurable):
             "dropout": self.rnn.dropout,
             "bidir": self.rnn.bidirectional,
             "d_z": self.reg.d_z,
-            "regularizer": {"alias": self.reg.alias, "config": self.reg.to_config()}
+            "regularizer": {"alias": self.reg.alias, "config": self.reg.to_config()},
         }
 
         return config
@@ -122,11 +122,11 @@ class RnnDecoder(nn.Module, Configurable):
     @property
     def d_v(self) -> int:
         return self.emb.num_embeddings
-    
+
     @property
     def PAD(self) -> int:
         return self.emb.padding_idx
-    
+
     def forward_step(self, xs: Sequence[Tensor], Z: Tensor) -> Tensor:
         lengths = [len(x) for x in xs]
         X = rnn.pad_sequence(xs, batch_first=True, padding_value=self.PAD)
@@ -178,7 +178,7 @@ class RnnDecoder(nn.Module, Configurable):
             "d_h": self.rnn.hidden_size,
             "n_layers": self.rnn.num_layers,
             "dropout": self.rnn.dropout,
-            "sampler": self.sampler.alias
+            "sampler": self.sampler.alias,
         }
 
         return config
@@ -187,6 +187,6 @@ class RnnDecoder(nn.Module, Configurable):
     def from_config(cls, config: dict) -> RnnDecoder:
         emb = nn.Embedding(**config["embedding"])
         sampler = SamplerRegistry[config["sampler"]]()
-        
+
         config = config | dict(embedding=emb, sampler=sampler)
         return cls(**config)

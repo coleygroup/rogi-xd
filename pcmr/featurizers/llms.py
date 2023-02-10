@@ -26,14 +26,14 @@ class HuggingFaceFeaturizer(FeaturizerBase):
 
     @classmethod
     @abstractmethod
-    def CLASSIFICATION_TOKEN_IDX(self) -> int:
-        """the index of the token from which to calculate word embeddings"""
+    def CLASS_TOKEN_IDX(self) -> int:
+        """the index of the classification token in a given word/sequence"""
 
     def __init__(
         self,
         batch_size: Optional[int] = None,
         device: Union[int, str, torch.device, None] = None,
-        **kwargs
+        **kwargs,
     ):
         self.batch_size = batch_size
         self.fe = pipeline(
@@ -64,14 +64,14 @@ class HuggingFaceFeaturizer(FeaturizerBase):
         self.__batch_size = batch_size
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
-        return torch.stack([H[0, self.CLASSIFICATION_TOKEN_IDX, :] for H in self.fe(smis)]).numpy()
+        return torch.stack([H[0, self.CLASS_TOKEN_IDX, :] for H in self.fe(smis)]).numpy()
 
 
 @FeaturizerRegistry.register("chemberta")
 class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
     MODEL_ID = "DeepChem/ChemBERTa-77M-MLM"
     DEFAULT_BATCH_SIZE = 32
-    CLASSIFICATION_TOKEN_IDX = 0
+    CLASS_TOKEN_IDX = 0
 
     def __str__(self) -> str:
         return "chemberta"
@@ -80,8 +80,8 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
 @FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
     MODEL_ID = "ncfrey/ChemGPT-1.2B"
-    DEFAULT_BATCH_SIZE = 0
-    CLASSIFICATION_TOKEN_IDX = -1
+    DEFAULT_BATCH_SIZE = 1
+    CLASS_TOKEN_IDX = -1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -90,6 +90,6 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizer):
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         return super().__call__([sf.encoder(smi) for smi in smis])
-    
+
     def __str__(self) -> str:
         return "chemgpt"

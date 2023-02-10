@@ -22,7 +22,7 @@ class SaveAndLoadMixin:
         save_dir.mkdir(parents=True, exist_ok=True)
         torch.save(self.state_dict(), p_state_dict)
         p_config.write_text(json.dumps(self.to_config(), indent=2))
-    
+
     @classmethod
     def load(cls, save_dir: PathLike) -> object:
         save_dir = Path(save_dir)

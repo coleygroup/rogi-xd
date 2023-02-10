@@ -18,7 +18,7 @@ class LitFeaturizer(FeaturizerBase):
         model: pl.LightningModule,
         batch_size: Optional[int] = 256,
         num_workers: int = 0,
-        **kwargs
+        **kwargs,
     ):
         self.model = model
         self.batch_size = batch_size or 256

@@ -8,6 +8,7 @@ from pcmr.utils import ClassRegistry
 
 FeaturizerRegistry = ClassRegistry()
 
+
 class FeaturizerBase(Callable[[Iterable[str], np.ndarray]]):
     def __init__(self, *args, **kwargs):
         pass

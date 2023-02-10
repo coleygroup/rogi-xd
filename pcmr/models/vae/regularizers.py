@@ -38,7 +38,7 @@ class Regularizer(nn.Module, Configurable):
 
     def to_config(self) -> dict:
         return {"d_z": self.d_z}
-    
+
     @classmethod
     def from_config(cls, config: dict) -> Regularizer:
         return cls(**config)

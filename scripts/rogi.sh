@@ -10,10 +10,10 @@ else
     featurizers=( $featurizers )
 fi
 
-echo "Running with featurizers: ${featurizers[@]// /, }"
+echo "Running with featurizers: ${featurizers[*]}"
 
 for f in "${featurizers[@]}"; do
     output=results/raw/`basename $input .txt`/${f}.csv
     model_dir=models/${f}/zinc
-    pcmr rogi -i ${input} -o $output -f $f -N$N -r $repeats -m ${model_dir} -vvvv --log
+    pcmr rogi -i $input -o $output -f $f -N$N -r $repeats -m ${model_dir} -vvvv --log
 done
