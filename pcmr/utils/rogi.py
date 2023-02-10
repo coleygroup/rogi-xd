@@ -1,5 +1,6 @@
 from enum import auto
 from typing import NamedTuple
+
 from pcmr.utils.utils import AutoName
 
 
