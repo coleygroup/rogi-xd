@@ -4,7 +4,7 @@ from typing import Any, Callable, NamedTuple, Optional
 
 from tdc.utils import fuzzy_search
 
-from pcmr.utils.utils import AutoName
+from pcmr.utils import AutoName
 
 
 class RogiCalculationRecord(NamedTuple):

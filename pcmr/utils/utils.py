@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from dataclasses import asdict, dataclass
-from enum import Enum, auto
-import json
+from enum import Enum
 import os
 from pathlib import Path
-from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union, runtime_checkable
+from typing import Union
 
 import requests
 import torch
@@ -35,62 +32,6 @@ class AutoName(Enum):
     @classmethod
     def keys(cls) -> list[str]:
         return [e.value for e in cls]
-
-
-class Fingerprint(AutoName):
-    MORGAN = auto()
-    TOPOLOGICAL = auto()
-
-
-class Metric(AutoName):
-    DICE = auto()
-    TANIMOTO = auto()
-    EUCLIDEAN = auto()
-    COSINE = auto()
-    CITYBLOCK = auto()
-    MAHALANOBIS = auto()
-    PRECOMPUTED = auto()
-
-
-class FingerprintConfig(NamedTuple):
-    fp: Fingerprint = Fingerprint.MORGAN
-    radius: int = 2
-    length: int = 2048
-
-
-@runtime_checkable
-class Configurable(Protocol):
-    def to_config(self) -> Config:
-        pass
-
-    @classmethod
-    def from_config(cls, config: Config) -> Configurable:
-        pass
-
-
-@dataclass
-class Config:
-    def save(self, path):
-        d = {
-            k: v.to_config() if isinstance(v, Configurable) else v
-            for k, v in asdict(self).items()
-        }
-
-        path = Path(path).write_text(json.dumps(d, indent=2))
-
-    @classmethod
-    def load(path) -> Config:
-        pass 
-
-
-@runtime_checkable
-class Configurable(Protocol):
-    def to_config(self) -> Config:
-        pass
-
-    @classmethod
-    def from_config(cls, config: Config) -> Configurable:
-        pass
 
 
 # @dataclass
