@@ -22,8 +22,7 @@ logger = logging.getLogger(__name__)
 
 def _calc_rogi(f: FeaturizerBase, smis: Iterable[str], y: Iterable[float]):
     X = f(smis)
-    score, _ = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
-    n_valid = len(X) - np.isnan(X).any(1).sum(0)
+    score, _, n_valid = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
 
     return score, n_valid
 

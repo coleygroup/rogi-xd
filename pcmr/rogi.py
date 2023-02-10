@@ -1,6 +1,6 @@
 from itertools import chain
 import logging
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional, Sequence, Union
 import warnings
 
 from fastcluster import complete as max_linkage
@@ -16,6 +16,30 @@ from sklearn.preprocessing import MinMaxScaler
 from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric
 
 logger = logging.getLogger(__name__)
+
+
+def mask_inputs(
+    y: np.ndarray,
+    X: Optional[np.ndarray],
+    fps: Optional[list[ExplicitBitVect]],
+    smis: Optional[Iterable[str]],
+):
+    y_mask = np.isfinite(y)
+
+    if X is not None:
+        x_mask = np.isfinite(X).all(1)
+        mask = y_mask & x_mask
+        X = X[mask]
+    elif fps is not None:
+        x_mask = np.ones(len(fps), bool)
+        mask = y_mask & x_mask
+        fps = [fp for fp, m in zip(fps, mask) if m]
+    elif smis is not None:
+        x_mask = np.array([Chem.MolFromSmiles(smi) is not None for smi in smis], bool)
+        mask = y_mask & x_mask
+        smis = [smi for smi, m in zip(smis, mask) if m]
+    
+    return y[mask], X, fps, smis
 
 
 def unsquareform(A: np.ndarray) -> np.ndarray:
@@ -48,7 +72,17 @@ def estimate_max_dist(X: np.ndarray, metric: Metric) -> float:
 
 def calc_distance_matrix_X(
     X: np.ndarray, metric: Metric, d_max: Optional[float] = None
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
+    """Calculate the distance matrix of the input array X
+    
+    Raises
+    ------
+    ValueError
+        if X has any invalid input values (e.g., 'inf' or 'nan')
+    """
+    if not np.isfinite(X).all():
+        raise ValueError("arg: 'X' must have only finite vaues!")
+    
     if metric == Metric.PRECOMPUTED:
         logging.info("Using precomputed distance matrix")
         if X.ndim == 1:
@@ -60,8 +94,6 @@ def calc_distance_matrix_X(
 
         d_max_ = d_max or 1.0
     else:
-        mask = np.isfinite(X).all(1)
-        X = X[mask]
         D: np.ndarray = pdist(X, metric.value)
         d_max_ = d_max or estimate_max_dist(X, metric)
 
@@ -74,7 +106,7 @@ def calc_distance_matrix_X(
             f"Please ensure the provided 'd_max' is correct. got: {d_max:0.3f}"
         )
 
-    return D, mask
+    return D
 
 
 def calc_fps(
@@ -95,25 +127,25 @@ def calc_fps(
 
 
 def calc_distance_matrix_fps(
-    fps, metric: Metric = Metric.TANIMOTO
-) -> tuple[np.ndarray, np.ndarray]:
+    fps: Sequence[ExplicitBitVect], metric: Metric = Metric.TANIMOTO
+) -> np.ndarray:
     logger.info("Computing distance matrix...")
 
     if metric == Metric.TANIMOTO:
-        sim_func = BulkTanimotoSimilarity
+        func = BulkTanimotoSimilarity
     elif metric == Metric.DICE:
-        sim_func = BulkDiceSimilarity
+        func = BulkDiceSimilarity
     else:
         raise ValueError(
             "Unsupported fingerprint distance metric!"
             f" got: {metric.value}. expected one of: (Metric.TANIMOTO, Metric.DICE)"
         )
 
-    simss = (sim_func(fps[i], fps[i + 1 :]) for i in range(len(fps)))
+    simss = (func(fps[i], fps[i + 1 :]) for i in range(len(fps)))
     sims = list(chain(*simss))
     S = np.array(sims)
 
-    return 1 - S, np.ones(len(fps), bool)
+    return 1 - S
 
 
 def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
@@ -153,25 +185,23 @@ def calc_distance_matrix(
     -------
     np.ndarray
         the upper triangular of the distance matrix as a 1-d vector
-    np.ndarray
-        the mask for inputs containing _at least_ 1 `nan` value
     """
     if X is not None:
         metric = Metric.get(metric) if metric is not None else Metric.EUCLIDEAN
-        D, mask = calc_distance_matrix_X(X, metric, max_dist)
+        D = calc_distance_matrix_X(X, metric, max_dist)
     elif fps is not None:
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
-        D, mask = calc_distance_matrix_fps(fps, metric)
+        D = calc_distance_matrix_fps(fps, metric)
     elif smis is not None:
         smis = validate_and_canonicalize_smis(smis)
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
         fps = calc_fps(mols, **fp_config._asdict())
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
-        D, mask = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
+        D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
     else:
         raise ValueError("args 'X', 'fps', and 'smis' were all `None`!")
 
-    return D, mask
+    return D
 
 
 def weighted_moment(
@@ -282,8 +312,10 @@ def rogi(
     max_dist: Optional[float] = None,
     min_dt: float = 0.01,
     nboots: int = 1,
-) -> tuple[float, Optional[float]]:
-    """calculate the ROGI score of a dataset and (optionally) its uncertainty
+) -> tuple[float, Optional[float], int]:
+    """calculate the ROGI of a dataset and (optionally) its uncertainty
+
+    NOTE: invalid scores or inputs will be silently removed before calculating the ROGI
 
     Parameters
     ----------
@@ -320,20 +352,24 @@ def rogi(
     Returns
     -------
     float
-        the ROGI score
+        the ROGI
     float | None
         the uncertainty in the ROGI score. `None` if `nboots <= 1`
+    int
+        the number of inputs used to calculate the ROGI post-masking
     """
     y = np.array(y)
+
     if normalize:
         y = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
     elif (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
 
-    D, mask = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
-    y_ = y[mask]
-    if (n_invalid := len(y) - mask.sum()) > 0:
-        logger.debug(f"Removed {n_invalid} input(s) with invalid features")
+    y_, X, fps, smis = mask_inputs(y, X, fps, smis)
+    D = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
+
+    if (n_invalid := len(y) - len(y_)) > 0:
+        logger.info(f"Removed {n_invalid} input(s) with invalid features or scores")
 
     thresholds, sds = coarse_grain(D, y_, min_dt)
     score: float = sds[0] - trapezoid(sds, thresholds)
@@ -356,4 +392,4 @@ def rogi(
     else:
         uncertainty = None
 
-    return score, uncertainty
+    return score, uncertainty, len(y_)
