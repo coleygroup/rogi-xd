@@ -1,7 +1,9 @@
 import logging
 from typing import Callable, Iterable, Optional
+from typing_extensions import Self
 
 import numpy as np
+from numpy.typing import ArrayLike
 from rdkit import Chem
 from rdkit.Chem import Descriptors
 from sklearn.preprocessing import MinMaxScaler
@@ -68,5 +70,10 @@ class DescriptorFeauturizer(FeaturizerBase):
 
         return MinMaxScaler().fit_transform(X) if self.scale else X
 
+    def finetune(self, smis: Iterable[str], targets: ArrayLike) -> Self:
+        """a :class:`DescriptorFeaturizer` can't be finetuned"""
+        
+        return self
+    
     def __str__(self) -> str:
         return "descriptor"
