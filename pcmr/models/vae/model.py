@@ -19,7 +19,7 @@ from pcmr.models.vae.schedulers import (
     ConstantScheduler,
     SchedulerRegistry,
 )
-from pcmr.utils.utils import Configurable
+from pcmr.utils import Configurable
 
 block = BlockLogs()
 warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarning)

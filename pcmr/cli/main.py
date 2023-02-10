@@ -51,7 +51,7 @@ def main():
         filename=logfile,
         format="%(asctime)s - %(levelname)s:%(name)s - %(message)s",
         level=LOG_LEVELS[min(verbose, len(LOG_LEVELS) - 1)],
-        datefmt="%Y-%m-%dT%M:%H:%S",
+        datefmt="%Y-%m-%dT%H:%M:%S",
         force=True,
     )
 

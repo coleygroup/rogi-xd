@@ -12,7 +12,7 @@ from torchdrug.tasks import AttributeMasking
 from torchdrug.data import feature
 
 from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
-from pcmr.utils.utils import Configurable
+from pcmr.utils import Configurable
 
 DEFAULT_ATOM_DIM = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1
 DEFAULT_BOND_DIM = sum(len(v) for v in [feature.bond_type_vocab, feature.bond_dir_vocab])

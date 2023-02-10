@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pcmr.data.base import DataModule
-from pcmr.exceptions import InvalidDatasetError, InvalidTaskError
+from pcmr.utils.exceptions import InvalidDatasetError, InvalidTaskError
 
 
 def combine_splits(splits: tuple[DiskDataset, ...]) -> tuple[list[str], np.ndarray]:

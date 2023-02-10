@@ -8,7 +8,7 @@ from tdc.utils import retrieve_label_name_list
 
 from pcmr.utils.utils import CACHE_DIR
 from pcmr.data.base import DataModule
-from pcmr.exceptions import InvalidDatasetError
+from pcmr.utils.exceptions import InvalidDatasetError
 
 
 class TdcDataModule(DataModule):

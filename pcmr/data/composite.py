@@ -6,7 +6,7 @@ from pcmr.data.base import DataModule
 from pcmr.data.tdc import TdcDataModule
 from pcmr.data.guacamol import GuacaMolDataModule
 from pcmr.data.dockstring import DockstringDataModule
-from pcmr.exceptions import InvalidDatasetError
+from pcmr.utils.exceptions import InvalidDatasetError
 
 
 class CompositeDataModule(DataModule):

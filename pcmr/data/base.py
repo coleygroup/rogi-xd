@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 
 import pandas as pd
 
-from pcmr.exceptions import InvalidDatasetError, InvalidTaskError
+from pcmr.utils.exceptions import InvalidDatasetError, InvalidTaskError
 
 logger = logging.getLogger(__name__)
 
