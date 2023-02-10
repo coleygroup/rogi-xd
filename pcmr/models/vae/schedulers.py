@@ -6,7 +6,7 @@ from typing import Any, Iterable
 import numpy as np
 from numpy.typing import ArrayLike
 
-from pcmr.utils import ClassRegistry, Configurable
+from pcmr.utils.utils import ClassRegistry, Configurable
 
 SchedulerRegistry = ClassRegistry()
 

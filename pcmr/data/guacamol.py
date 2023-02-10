@@ -5,7 +5,7 @@ import pandas as pd
 from tdc import Oracle
 from tdc.generation import MolGen
 
-from pcmr.utils import CACHE_DIR
+from pcmr.utils.utils import CACHE_DIR
 from pcmr.data.base import DataModule
 
 logger = logging.getLogger(__name__)

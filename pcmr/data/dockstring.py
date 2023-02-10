@@ -4,7 +4,7 @@ from typing import Optional
 import pandas as pd
 
 from pcmr.data.base import DataModule
-from pcmr.utils import CACHE_DIR, download_file
+from pcmr.utils.utils import CACHE_DIR, download_file
 
 logger = logging.getLogger(__name__)
 
@@ -12,11 +12,14 @@ DOCKSTRING_URL = "https://figshare.com/ndownloader/files/35948138"
 DOCKSTRING_PATH = CACHE_DIR / "dockstring.tsv"
 
 if not DOCKSTRING_PATH.exists() or DOCKSTRING_PATH.stat().st_size == 0:
+    logger.debug("DOCKSTRING TSV not found. Downloading...")
     download_file(DOCKSTRING_URL, DOCKSTRING_PATH, "Downloading dockstring TSV")
+else:
+    logger.debug("Found local copy of DOCKSTRING TSV")
 
 
 class DockstringDataModule(DataModule):
-    """The :class:`DockstringDataModule` loads the Dockstring dataset from [1]
+    """The :class:`DockstringDataModule` loads the Dockstring dataset from [1]_
 
     References
     ----------
@@ -44,4 +47,4 @@ class DockstringDataModule(DataModule):
 
         y = cls.__df[task.upper()]
 
-        return pd.DataFrame(dict(smiles=cls.__df.index, y=y))
+        return pd.DataFrame(dict(smiles=cls.__df.index.values, y=y))

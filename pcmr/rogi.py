@@ -13,7 +13,7 @@ from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
-from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric
+from pcmr.utils.utils import Fingerprint, FingerprintConfig, flist, Metric
 
 logger = logging.getLogger(__name__)
 

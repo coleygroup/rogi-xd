@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from datetime import datetime
 import logging
+import sys
 
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
@@ -11,6 +12,15 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_LOGFILE = f"logs/{datetime.now().isoformat(timespec='seconds')}.log"
 LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+
+
+def log_exceptions(exc_type, exc_value, exc_traceback):
+    """log exceptions before rethrowing them. taken from https://stackoverflow.com/a/16993115"""
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 def main():
@@ -44,6 +54,9 @@ def main():
         datefmt="%Y-%m-%dT%M:%H:%S",
         force=True,
     )
+
+    handler = logging.StreamHandler(stream=sys.stdout)
+    logger.addHandler(handler)
 
     logger.info(f"Running in mode '{mode}' with args: {vars(args)}")
 

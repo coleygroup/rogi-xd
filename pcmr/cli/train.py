@@ -180,7 +180,7 @@ class TrainSubcommand(Subcommand):
         embedding = nn.Embedding(len(tokenizer), 64, tokenizer.PAD)
         encoder = RnnEncoder(embedding)
         decoder = RnnDecoder(tokenizer.SOS, tokenizer.EOS, embedding)
-        model = LitVAE(encoder, decoder)
+        model = LitVAE(tokenizer, encoder, decoder)
 
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset

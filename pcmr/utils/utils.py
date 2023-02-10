@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import asdict, dataclass
 from enum import Enum, auto
+import json
 import os
 from pathlib import Path
-from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union
+from typing import Iterable, Iterator, NamedTuple, Protocol, Type, Union, runtime_checkable
 
 import requests
 import torch
@@ -69,9 +71,6 @@ class ClassRegistry(Mapping[str, Type]):
             else:
                 keys = alias
 
-            # class wrapped(cls):
-            #     alias = keys[0]
-
             cls.alias = keys[0]
             for k in keys:
                 self.__registry[k] = cls
@@ -92,12 +91,38 @@ class ClassRegistry(Mapping[str, Type]):
         return len(self.__registry)
 
 
+@runtime_checkable
 class Configurable(Protocol):
-    def to_config(self) -> dict:
+    def to_config(self) -> Config:
         pass
 
     @classmethod
-    def from_config(cls, config: dict) -> Configurable:
+    def from_config(cls, config: Config) -> Configurable:
+        pass
+
+
+@dataclass
+class Config:
+    def save(self, path):
+        d = {
+            k: v.to_config() if isinstance(v, Configurable) else v
+            for k, v in asdict(self).items()
+        }
+
+        path = Path(path).write_text(json.dumps(d, indent=2))
+
+    @classmethod
+    def load(path) -> Config:
+        pass 
+
+
+@runtime_checkable
+class Configurable(Protocol):
+    def to_config(self) -> Config:
+        pass
+
+    @classmethod
+    def from_config(cls, config: Config) -> Configurable:
         pass
 
 

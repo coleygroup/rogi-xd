@@ -8,7 +8,7 @@ import torch
 from transformers import pipeline
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
-from pcmr.utils import select_device
+from pcmr.utils.utils import select_device
 
 logger = logging.getLogger(__name__)
 

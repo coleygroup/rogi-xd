@@ -19,7 +19,7 @@ from pcmr.models.vae.schedulers import (
     ConstantScheduler,
     SchedulerRegistry,
 )
-from pcmr.utils import Configurable
+from pcmr.utils.utils import Configurable
 
 block = BlockLogs()
 warnings.filterwarnings("ignore", "Trying to infer the `batch_size`", UserWarning)
@@ -197,9 +197,6 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
 
     @classmethod
     def from_config(cls, config: dict) -> LitVAE:
-        """NOTE: If the encoder and decoder embedding layers have the same configuration, it is
-        assumed they are to share this layer."""
-
         enc_emb_config = config["encoder"]["embedding"]
         dec_emb_config = config["decoder"]["embedding"]
 

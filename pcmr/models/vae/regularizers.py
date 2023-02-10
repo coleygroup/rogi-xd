@@ -5,7 +5,7 @@ from abc import abstractmethod
 import torch
 from torch import Tensor, nn
 
-from pcmr.utils import ClassRegistry, Configurable
+from pcmr.utils.utils import ClassRegistry, Configurable
 
 RegularizerRegistry = ClassRegistry()
 

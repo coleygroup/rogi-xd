@@ -6,7 +6,7 @@ import torch
 from torch import Tensor, nn
 from torch.nn.utils import rnn
 
-from pcmr.utils import Configurable
+from pcmr.utils.utils import Configurable
 from pcmr.models.vae.regularizers import Regularizer, VariationalRegularizer, RegularizerRegistry
 from pcmr.models.vae.samplers import Sampler, ModeSampler, SamplerRegistry
 

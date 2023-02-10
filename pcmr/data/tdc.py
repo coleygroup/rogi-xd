@@ -6,7 +6,7 @@ import pandas as pd
 from tdc.single_pred import ADME, Tox
 from tdc.utils import retrieve_label_name_list
 
-from pcmr.utils import CACHE_DIR
+from pcmr.utils.utils import CACHE_DIR
 from pcmr.data.base import DataModule
 from pcmr.exceptions import InvalidDatasetError
 

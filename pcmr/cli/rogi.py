@@ -13,7 +13,7 @@ from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.models.gin.model import LitAttrMaskGIN
 from pcmr.models.vae.model import LitVAE
 from pcmr.rogi import rogi
-from pcmr.utils import Metric
+from pcmr.utils.utils import Metric
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import RogiCalculationRecord, dataset_and_task
 

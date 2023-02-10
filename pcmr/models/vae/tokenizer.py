@@ -4,7 +4,7 @@ from dataclasses import dataclass, asdict
 import re
 from typing import Iterable, Iterator, Sequence
 
-from pcmr.utils import Configurable
+from pcmr.utils.utils import Configurable
 
 _SMILES_PATTERN = r"(\[|\]|Br?|C[u,l]?|Zn|S[i,n]?|Li|Na?|Fe?|H|K|O|P|I|c|n|o|s|p|\(|\)|\.|=|#|-|\+|\\|\/|:|~|@{1,2}|\?|>|\*|\$|\%[0-9]{2}|[0-9])"
 _SMILES_VOCAB = [*"HBCNOSPFIcnosp[]()123456@-+=#/\\", "Cl", "Br", "@@"]
