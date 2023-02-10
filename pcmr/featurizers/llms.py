@@ -80,7 +80,7 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
 @FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizer):
     MODEL_ID = "ncfrey/ChemGPT-1.2B"
-    DEFAULT_BATCH_SIZE = 8
+    DEFAULT_BATCH_SIZE = 0
     CLASSIFICATION_TOKEN_IDX = -1
 
     def __init__(self, *args, **kwargs):
