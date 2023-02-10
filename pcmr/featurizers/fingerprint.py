@@ -1,9 +1,9 @@
-from typing import Iterable
+# from typing import Iterable
 
-import numpy as np
-from rdkit import Chem
+# import numpy as np
+# from rdkit import Chem
 
-from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
+# from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
 
 # @FeaturizerRegistry.register(alias="morgan")
