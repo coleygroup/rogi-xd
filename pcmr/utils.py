@@ -116,7 +116,16 @@ class Configurable(Protocol):
 
 class flist(list):
     def __format__(self, format_spec):
-        return f'[{", ".join(f"{i:{format_spec}}" for i in self)}]'
+        fmt = lambda xs: ', '.join(f'{x:{format_spec}}' for x in xs)
+        if len(self) >= 6:
+            s = f"[{fmt(self[:3])}, ..., {fmt(self[-3:])}]"
+        else:
+            s = f"[{fmt(self)}]"
+
+        return s
+
+    def __str__(self) -> str:
+        return f"{self}"
 
 
 def select_device(device: Union[int, str, torch.device, None]):

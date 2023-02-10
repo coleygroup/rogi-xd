@@ -5,13 +5,12 @@ import pandas as pd
 from pcmr.data.base import DataModule
 from pcmr.data.tdc import TdcDataModule
 from pcmr.data.guacamol import GuacaMolDataModule
+from pcmr.data.dockstring import DockstringDataModule
 from pcmr.exceptions import InvalidDatasetError
-
-# from pcmr.data.molnet import MoleculeNetDataModule
 
 
 class CompositeDataModule(DataModule):
-    __MODULES: list[DataModule] = [TdcDataModule, GuacaMolDataModule]
+    __MODULES: list[DataModule] = [TdcDataModule, GuacaMolDataModule, DockstringDataModule]
     __dset2module = {dset: module for module in __MODULES for dset in module.datasets}
 
     @classmethod

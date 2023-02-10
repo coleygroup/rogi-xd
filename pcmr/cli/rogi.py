@@ -103,14 +103,12 @@ class RogiSubcommand(Subcommand):
 
         rows = []
         for d, t in args.datasets_tasks:
-            logger.debug(f"running dataset/task={d}/{t}, features={f}")
+            logger.info(f"running dataset/task={d}/{t}")
             try:
                 results = calc_rogi(f, d, t, args.N, args.repeats)
                 rows.extend(results)
             except FloatingPointError as e:
-                logger.error(
-                    f"ROGI calculation failed! dataset/task={d}/{t}, features={f}. Skipping..."
-                )
+                logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
                 logger.error(e)
             except KeyboardInterrupt:
                 logger.error("Interrupt detected! Exiting...")
