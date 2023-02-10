@@ -5,7 +5,7 @@ from abc import abstractmethod
 from torch import Tensor, nn
 from torch.distributions import Distribution, Categorical
 
-from pcmr.utils.utils import ClassRegistry, Configurable
+from pcmr.utils import ClassRegistry, Configurable
 
 SamplerRegistry = ClassRegistry()
 

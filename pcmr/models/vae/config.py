@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
-import json
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Iterable
 
 from torch import nn
@@ -11,7 +9,7 @@ from pcmr.models.vae.modules import RnnDecoder, RnnEncoder
 from pcmr.models.vae.regularizers import Regularizer
 from pcmr.models.vae.samplers import Sampler
 from pcmr.models.vae.tokenizer import Tokenizer
-from pcmr.utils.utils import Configurable
+from pcmr.utils.utils import Config
 
 
 @dataclass
