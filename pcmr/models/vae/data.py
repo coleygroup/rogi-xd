@@ -1,5 +1,6 @@
 from typing import Iterable
 
+import numpy as np
 import torch
 from torch import Tensor
 from torch.utils.data import Dataset
@@ -35,3 +36,18 @@ class CachedUnsupervisedDataset(UnsupervisedDataset):
 
     def __getitem__(self, i: int) -> Tensor:
         return self.data[i]
+
+
+class SupervisedDataset(Dataset):
+    def __init__(self, dset: UnsupervisedDataset, Y: np.ndarray):
+        self.dset = dset
+        self.Y = torch.from_numpy(Y).float()
+    
+    def __getitem__(self, i: int) -> tuple[Tensor, Tensor]:
+        return self.dset[i], self.Y[i]
+    
+    @staticmethod
+    def collate_fn(batch: Iterable[tuple[Tensor, Tensor]]) -> list[Tensor]:
+        idss, ys = zip(*batch)
+
+        return idss, torch.stack(ys)
