@@ -89,7 +89,7 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizer):
         self.fe.tokenizer.padding_size = "left"
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
-        return super().__call__([sf.encoder(smi) for smi in smis])
+        return super().__call__([sf.encoder(smi, False) for smi in smis])
 
     def __str__(self) -> str:
         return "chemgpt"
