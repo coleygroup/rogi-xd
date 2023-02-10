@@ -13,7 +13,7 @@ from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.models.gin.model import LitAttrMaskGIN
 from pcmr.models.vae.model import LitVAE
 from pcmr.rogi import rogi
-from pcmr.utils.utils import Metric
+from pcmr.utils import Metric
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import RogiCalculationRecord, dataset_and_task
 
@@ -115,21 +115,22 @@ class RogiSubcommand(Subcommand):
         )
 
         rows = []
-        for d, t in args.datasets_tasks:
-            logger.info(f"running dataset/task={d}/{t}")
-            try:
-                results = calc_rogi(f, d, t, args.N, args.repeats)
-                rows.extend(results)
-            except FloatingPointError as e:
-                logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
-                logger.error(e)
-            except KeyboardInterrupt:
-                logger.error("Interrupt detected! Exiting...")
-                break
-
-        df = pd.DataFrame(rows)
-        print(df)
-        df.to_csv(args.output, index=False)
+        try:
+            for d, t in args.datasets_tasks:
+                logger.info(f"running dataset/task={d}/{t}")
+                try:
+                    results = calc_rogi(f, d, t, args.N, args.repeats)
+                    rows.extend(results)
+                except FloatingPointError as e:
+                    logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
+                    logger.error(e)
+                except KeyboardInterrupt:
+                    logger.error("Interrupt detected! Exiting...")
+                    break
+        finally:
+            df = pd.DataFrame(rows)
+            print(df)
+            df.to_csv(args.output, index=False)
 
         logger.info(f"Saved output CSV to '{args.output}'")
 
