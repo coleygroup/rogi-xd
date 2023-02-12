@@ -10,7 +10,8 @@ from pcmr.cli.utils import pop_attr
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LOGFILE = f"logs/{datetime.now().isoformat(timespec='seconds')}.log"
+NOW = datetime.now().isoformat(timespec='seconds')
+DEFAULT_LOGFILE = f"logs/{NOW}.log"
 LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
 
 

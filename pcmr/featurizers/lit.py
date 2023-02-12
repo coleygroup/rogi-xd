@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from typing import Iterable, Optional
 from typing_extensions import Self
 
@@ -9,6 +8,7 @@ import torch
 import torch.utils.data
 import torchdrug.data
 
+# from ae_utils.char import LitCVAE
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.featurizers.mixins import BatchSizeMixin
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset

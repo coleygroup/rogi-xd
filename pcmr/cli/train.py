@@ -16,6 +16,8 @@ from torch import nn
 import torch.utils.data
 import torchdrug.data
 
+from ae_utils.char import LitCVAE
+from pcmr.cli.main import NOW
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import (
     LitVAE,
@@ -111,9 +113,17 @@ class TrainSubcommand(Subcommand):
             args.gpus,
             args.chkpt,
         )
-        model.save(output_dir)
-        logger.info(f"Saved {args.model} model to {output_dir}")
 
+        if next(output_dir.iterdir(), None) is not None:
+            new_dir = output_dir.with_name(f"{output_dir.name}.{NOW}")
+            model.save(new_dir)
+            logger.info(
+                f"{output_dir} is not empty! Saved  {args.model} model to {new_dir} instead..."
+            )
+        else:
+            model.save(output_dir)
+            logger.info(f"Saved {args.model} model to {new_dir}")
+            
     @staticmethod
     def train_gin(
         smis: list[str],
@@ -180,7 +190,7 @@ class TrainSubcommand(Subcommand):
         embedding = nn.Embedding(len(tokenizer), 64, tokenizer.PAD)
         encoder = RnnEncoder(embedding)
         decoder = RnnDecoder(tokenizer.SOS, tokenizer.EOS, embedding)
-        model = LitVAE(tokenizer, encoder, decoder)
+        model = LitCVAE(tokenizer, encoder, decoder)
 
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset
