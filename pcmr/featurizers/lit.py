@@ -10,12 +10,15 @@ import torch.utils.data
 import torchdrug.data
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from pcmr.featurizers.mixins import BatchSizeMixin
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import LitVAE, UnsupervisedDataset
 from pcmr.models.vae.data import SupervisedDataset
 
 
-class LitFeaturizerMixin:
+class LitFeaturizerMixin(BatchSizeMixin):
+    DEFAULT_BATCH_SIZE = 256
+    
     def __init__(
         self,
         model: pl.LightningModule,
@@ -25,7 +28,7 @@ class LitFeaturizerMixin:
         **kwargs,
     ):
         self.model = model
-        self.batch_size = batch_size or 256
+        self.batch_size = batch_size
         self.finetune_batch_size = finetune_batch_size or 64
         self.num_workers = num_workers
 
@@ -40,6 +43,7 @@ class LitFeaturizerMixin:
         return torch.cat(Xs).numpy().astype(float)
 
     def finetune(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]) -> Self:
+        raise NotImplementedError
         self.setup_finetune()
         train_loader, val_loader = self.build_finetune_loaders(*splits)
 
@@ -57,14 +61,15 @@ class LitFeaturizerMixin:
 
 @FeaturizerRegistry.register("gin")
 class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
-    def __init__(
-        self,
-        model: LitAttrMaskGIN,
-        batch_size: Optional[int] = None,
-        finetune_batch_size: Optional[int] = None,
-        num_workers: int = 0, **kwargs
-    ):
-        super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
+    # def __init__(
+    #     self,
+    #     model: LitAttrMaskGIN,
+    #     batch_size: Optional[int] = None,
+    #     finetune_batch_size: Optional[int] = None,
+    #     num_workers: int = 0,
+    #     **kwargs
+    # ):
+    #     super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
         
     def build_unsupervised_loader(self, smis):
         dataset = CustomDataset()
@@ -102,14 +107,14 @@ class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
     
 @FeaturizerRegistry.register("vae")
 class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
-    def __init__(
-        self,
-        model: LitVAE,
-        batch_size: Optional[int] = None,
-        finetune_batch_size: Optional[int] = None,
-        num_workers: int = 0, **kwargs
-    ):
-        super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
+    # def __init__(
+    #     self,
+    #     model: LitVAE,
+    #     batch_size: Optional[int] = None,
+    #     finetune_batch_size: Optional[int] = None,
+    #     num_workers: int = 0, **kwargs
+    # ):
+    #     super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
 
     def build_unsupervised_loader(self, smis):
         dset = UnsupervisedDataset(smis, self.model.tokenizer)

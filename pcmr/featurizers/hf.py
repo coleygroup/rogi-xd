@@ -1,34 +1,22 @@
 from abc import abstractmethod
 import logging
 from typing import Iterable, Optional, Union
+from typing_extensions import Self
 
 import numpy as np
+from numpy.typing import ArrayLike
 import selfies as sf
 import torch
 from transformers import pipeline
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from pcmr.featurizers.mixins import BatchSizeMixin
 from pcmr.utils.utils import select_device
 
 logger = logging.getLogger(__name__)
 
 
-class HuggingFaceFeaturizer(FeaturizerBase):
-    @classmethod
-    @abstractmethod
-    def MODEL_ID(self) -> int:
-        """the model identifier in the huggingface model hub"""
-
-    @classmethod
-    @abstractmethod
-    def DEFAULT_BATCH_SIZE(self) -> int:
-        """the default batch size"""
-
-    @classmethod
-    @abstractmethod
-    def CLASS_TOKEN_IDX(self) -> int:
-        """the index of the classification token in a given word/sequence"""
-
+class HuggingFaceFeaturizerMixin(BatchSizeMixin):
     def __init__(
         self,
         batch_size: Optional[int] = None,
@@ -46,29 +34,15 @@ class HuggingFaceFeaturizer(FeaturizerBase):
         )
         self.fe.tokenizer.padding_size = "right"
 
-    @property
-    def batch_size(self) -> int:
-        return self.__batch_size
-
-    @batch_size.setter
-    def batch_size(self, batch_size: Optional[int]):
-        if batch_size is None:
-            logger.debug(
-                f"'batch_size' was `None`. Using default batch size (={self.DEFAULT_BATCH_SIZE})"
-            )
-            batch_size = self.DEFAULT_BATCH_SIZE
-
-        if batch_size < 1:
-            raise ValueError(f"'batch_size' cannot be < 1! got: {batch_size}")
-
-        self.__batch_size = batch_size
-
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         return torch.stack([H[0, self.CLASS_TOKEN_IDX, :] for H in self.fe(smis)]).numpy()
 
+    def finetune(self, smis: Iterable[str], targets: ArrayLike) -> Self:
+        raise NotImplementedError
+
 
 @FeaturizerRegistry.register("chemberta")
-class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
+class ChemBERTaFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
     MODEL_ID = "DeepChem/ChemBERTa-77M-MLM"
     DEFAULT_BATCH_SIZE = 32
     CLASS_TOKEN_IDX = 0
@@ -78,7 +52,7 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizer):
 
 
 @FeaturizerRegistry.register("chemgpt")
-class ChemGPTFeaturizer(HuggingFaceFeaturizer):
+class ChemGPTFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
     MODEL_ID = "ncfrey/ChemGPT-1.2B"
     DEFAULT_BATCH_SIZE = 1
     CLASS_TOKEN_IDX = -1

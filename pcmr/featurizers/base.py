@@ -1,5 +1,4 @@
-from abc import abstractmethod
-from collections.abc import Callable
+from abc import ABC, abstractmethod
 from typing import Iterable
 from typing_extensions import Self
 
@@ -11,16 +10,13 @@ from pcmr.utils import ClassRegistry
 FeaturizerRegistry = ClassRegistry()
 
 
-class FeaturizerBase(Callable[[Iterable[str], np.ndarray]]):
+class FeaturizerBase(ABC):
     def __init__(self, *args, **kwargs):
         pass
 
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}"
-    
     @abstractmethod
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
-        pass
+        """featurize the input SMILES strings into vectors"""
 
     @abstractmethod
     def finetune(self, smis: Iterable[str], targets: ArrayLike) -> Self:
