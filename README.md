@@ -2,6 +2,11 @@
 
 ## Setup
 
+As a first step, clone this repository and its submodules:
+```
+git clone --recurse-submodules THIS_REPO
+```
+
 ### Conda
 ```
 conda env create -f environment.yml
@@ -21,7 +26,7 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
     torch-cluster torch-spline-conv torch-geometric \
     -f https://data.pyg.org/whl/torch-1.13.1+${CUDA}.html \
   && pip install git+https://github.com/DeepGraphLearning/torchdrug \
-  && pip install .
+  && pip install . autoencoders
 ```
 
 
