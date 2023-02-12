@@ -1,0 +1,3 @@
+[submodule "autoencoders"]
+	path = autoencoders
+	url = git@github.com:davidegraff/autoencoders.git
