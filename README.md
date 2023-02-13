@@ -12,13 +12,13 @@ git clone --recurse-submodules THIS_REPO
 conda env create -f environment.yml
 ```
 _Note_: `environment.yml` contains CUDA 11.6 versions of several packages. If you want to use this environment on CPU, replace `cu116` with `cpu` before running the above command
-```bash
+```
 sed -i -e 's/cu116/cpu/g' environment.yml
 conda env create -f environment.yml
 ```
 ### Manual
 _Note_: this is only recommended in the event that you'd like specify different package versions
-```sh
+```
 conda create -n pcmr -y python=3.9 && conda activate pcmr
 CUDA=cu116  # NOTE: depending on your machine, this can be any one of: ("cpu" | "cu116" | "cu117") 
 pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUDA}\

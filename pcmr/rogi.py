@@ -38,7 +38,7 @@ def mask_inputs(
         x_mask = np.array([Chem.MolFromSmiles(smi) is not None for smi in smis], bool)
         mask = y_mask & x_mask
         smis = [smi for smi, m in zip(smis, mask) if m]
-    
+
     return y[mask], X, fps, smis
 
 
@@ -74,7 +74,7 @@ def calc_distance_matrix_X(
     X: np.ndarray, metric: Metric, d_max: Optional[float] = None
 ) -> np.ndarray:
     """Calculate the distance matrix of the input array X
-    
+
     Raises
     ------
     ValueError
@@ -82,7 +82,7 @@ def calc_distance_matrix_X(
     """
     if not np.isfinite(X).all():
         raise ValueError("arg: 'X' must have only finite vaues!")
-    
+
     if metric == Metric.PRECOMPUTED:
         logging.info("Using precomputed distance matrix")
         if X.ndim == 1:

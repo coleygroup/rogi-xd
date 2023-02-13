@@ -1,16 +1,14 @@
 from argparse import ArgumentParser
-from datetime import datetime
 import logging
 import sys
 
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.cli.train import TrainSubcommand
-from pcmr.cli.utils import pop_attr
+from pcmr.cli.utils import NOW, pop_attr
 
 logger = logging.getLogger(__name__)
 
-NOW = datetime.now().isoformat(timespec='seconds')
 DEFAULT_LOGFILE = f"logs/{NOW}.log"
 LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
 

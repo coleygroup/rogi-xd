@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import auto
 import functools
 from typing import Any, Callable, NamedTuple, Optional
@@ -5,6 +6,8 @@ from typing import Any, Callable, NamedTuple, Optional
 from tdc.utils import fuzzy_search
 
 from pcmr.utils import AutoName
+
+NOW = datetime.now().isoformat(timespec="seconds")
 
 
 class RogiCalculationRecord(NamedTuple):

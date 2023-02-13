@@ -16,8 +16,6 @@ from torch import nn
 import torch.utils.data
 import torchdrug.data
 
-from ae_utils.char import LitCVAE
-from pcmr.cli.main import NOW
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 from pcmr.models.vae import (
     LitVAE,
@@ -28,7 +26,7 @@ from pcmr.models.vae import (
     CachedUnsupervisedDataset,
 )
 from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import ModelType, bounded, fuzzy_lookup
+from pcmr.cli.utils import NOW, ModelType, bounded, fuzzy_lookup
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision("high")
@@ -123,7 +121,7 @@ class TrainSubcommand(Subcommand):
         else:
             model.save(output_dir)
             logger.info(f"Saved {args.model} model to {new_dir}")
-            
+
     @staticmethod
     def train_gin(
         smis: list[str],
@@ -190,7 +188,7 @@ class TrainSubcommand(Subcommand):
         embedding = nn.Embedding(len(tokenizer), 64, tokenizer.PAD)
         encoder = RnnEncoder(embedding)
         decoder = RnnDecoder(tokenizer.SOS, tokenizer.EOS, embedding)
-        model = LitCVAE(tokenizer, encoder, decoder)
+        model = LitVAE(tokenizer, encoder, decoder)
 
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset

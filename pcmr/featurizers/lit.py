@@ -18,7 +18,7 @@ from pcmr.models.vae.data import SupervisedDataset
 
 class LitFeaturizerMixin(BatchSizeMixin):
     DEFAULT_BATCH_SIZE = 256
-    
+
     def __init__(
         self,
         model: pl.LightningModule,
@@ -49,10 +49,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
         gpus = 1 if torch.cuda.is_available() else 0
         trainer = pl.Trainer(
-            None,
-            accelerator="gpu" if gpus else "cpu",
-            devices=gpus or 1,
-            max_epochs=10,
+            None, accelerator="gpu" if gpus else "cpu", devices=gpus or 1, max_epochs=10
         )
         trainer.fit(self.model, train_loader, val_loader)
 
@@ -70,7 +67,7 @@ class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
     #     **kwargs
     # ):
     #     super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
-        
+
     def build_unsupervised_loader(self, smis):
         dataset = CustomDataset()
         dataset.load_smiles(smis, {}, atom_feature="pretrain", bond_feature="pretrain")
@@ -98,13 +95,11 @@ class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
         train_loader = torchdrug.data.DataLoader(
             train, self.batch_size, num_workers=self.num_workers
         )
-        val_loader = torchdrug.data.DataLoader(
-            val, self.batch_size, num_workers=self.num_workers
-        )
+        val_loader = torchdrug.data.DataLoader(val, self.batch_size, num_workers=self.num_workers)
 
         return train_loader, val_loader
-    
-    
+
+
 @FeaturizerRegistry.register("vae")
 class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
     # def __init__(
@@ -122,7 +117,7 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
         return torch.utils.data.DataLoader(
             dset, self.batch_size, num_workers=self.num_workers, collate_fn=dset.collate_fn
         )
-    
+
     def setup_fintune(self, d_out: int = 1):
         pass
 
@@ -140,7 +135,7 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
             val = SupervisedDataset(val, y_val)
         else:
             raise ValueError
-        
+
         train_loader = torch.utils.data.DataLoader(
             train,
             self.finetune_batch_size,
@@ -148,10 +143,7 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
             collate_fn=train.collate_fn,
         )
         val_loader = torch.utils.data.DataLoader(
-            val,
-            self.finetune_batch_size,
-            num_workers=self.num_workers,
-            collate_fn=val.collate_fn
+            val, self.finetune_batch_size, num_workers=self.num_workers, collate_fn=val.collate_fn
         )
-        
+
         return train_loader, val_loader

@@ -50,7 +50,7 @@ class AutoName(Enum):
 
 class flist(list):
     def __format__(self, format_spec):
-        fmt = lambda xs: ", ".join(f"{x:{format_spec}}" for x in xs)    # noqa: E731
+        fmt = lambda xs: ", ".join(f"{x:{format_spec}}" for x in xs)  # noqa: E731
         if len(self) >= 6:
             s = f"[{fmt(self[:3])}, ..., {fmt(self[-3:])}]"
         else:

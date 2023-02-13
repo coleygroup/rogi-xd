@@ -72,8 +72,8 @@ class DescriptorFeauturizer(FeaturizerBase):
 
     def finetune(self, smis: Iterable[str], targets: ArrayLike) -> Self:
         """a :class:`DescriptorFeaturizer` can't be finetuned"""
-        
+
         return self
-    
+
     def __str__(self) -> str:
         return "descriptor"
