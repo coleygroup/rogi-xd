@@ -11,7 +11,7 @@ NOW = datetime.now().isoformat(timespec="seconds")
 
 
 class RogiCalculationRecord(NamedTuple):
-    featurizer: str
+    features: str
     dataset_and_task: str
     n_valid: int
     rogi: float

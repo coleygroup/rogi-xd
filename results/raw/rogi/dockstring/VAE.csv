@@ -1,4 +1,4 @@
-featurizer,dataset_and_task,n_valid,rogi
+features,dataset_and_task,n_valid,rogi
 vae,DOCKSTRING/NOS1,10000,0.22240442172707536
 vae,DOCKSTRING/NOS1,10000,0.2124438475447588
 vae,DOCKSTRING/NOS1,9999,0.18881379344498603
