@@ -8,10 +8,11 @@ from typing import Iterable, Optional
 import numpy as np
 import pandas as pd
 
+from ae_utils.char import LitCVAE
 from pcmr.data import data
 from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
-from pcmr.models.gin.model import LitAttrMaskGIN
-from pcmr.models.vae.model import LitVAE
+from pcmr.featurizers.lit import VAEFeaturizer
+from pcmr.models.gin import LitAttrMaskGIN
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
 from pcmr.cli.command import Subcommand
@@ -39,6 +40,11 @@ def calc_rogi(
         for _ in range(repeats):
             df_sample = df.sample(n)
             score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
+            results.append(RogiCalculationRecord(f.alias, dt_string, n_valid, score))
+    elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
+        results = []
+        for _ in range(repeats):
+            score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
             results.append(RogiCalculationRecord(f.alias, dt_string, n_valid, score))
     else:
         score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
@@ -79,7 +85,7 @@ class RogiSubcommand(Subcommand):
             "-o",
             "--output",
             type=Path,
-            help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZEER.csv'",
+            help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZER.csv'",
         )
         parser.add_argument(
             "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
@@ -142,7 +148,7 @@ class RogiSubcommand(Subcommand):
     ) -> FeaturizerBase:
         featurizer_cls = FeaturizerRegistry[featurizer]
         if featurizer == "vae":
-            model = LitVAE.load(model_dir)
+            model = LitCVAE.load(model_dir)
         elif featurizer == "gin":
             model = LitAttrMaskGIN.load(model_dir)
         elif featurizer in ("chemgpt", "chemberta"):
