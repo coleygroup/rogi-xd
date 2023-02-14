@@ -74,12 +74,12 @@ class RogiSubcommand(Subcommand):
             "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
         parser.add_argument("-r", "--repeats", type=int, default=1)
-        parser.add_argument("-N", type=int, default=10000, help="the number of data to sumbsample")
+        parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
         parser.add_argument(
             "-o",
             "--output",
             type=Path,
-            help="the to which results should be written. If unspecified, will write to 'results/raw/FEATURIZEER.csv'",
+            help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZEER.csv'",
         )
         parser.add_argument(
             "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
@@ -106,7 +106,7 @@ class RogiSubcommand(Subcommand):
             args.datasets_tasks.extend(
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
-        args.output = args.output or Path(f"results/raw/{args.featurizer}.csv")
+        args.output = args.output or Path(f"results/raw/rogi/{args.featurizer}.csv")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
@@ -130,8 +130,8 @@ class RogiSubcommand(Subcommand):
             df = pd.DataFrame(rows)
             print(df)
             df.to_csv(args.output, index=False)
+            logger.info(f"Saved output CSV to '{args.output}'")
 
-        logger.info(f"Saved output CSV to '{args.output}'")
 
     @staticmethod
     def build_featurizer(
