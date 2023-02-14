@@ -70,7 +70,7 @@ class DescriptorFeauturizer(FeaturizerBase):
 
         return MinMaxScaler().fit_transform(X) if self.scale else X
 
-    def finetune(self, smis: Iterable[str], targets: ArrayLike) -> Self:
+    def finetune(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]) -> Self:
         """a :class:`DescriptorFeaturizer` can't be finetuned"""
 
         return self

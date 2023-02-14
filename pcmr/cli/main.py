@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import logging
 import sys
 
+from pcmr.cli.finetune import FinetuneSubcommand
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.cli.train import TrainSubcommand
@@ -40,6 +41,7 @@ def main():
     ListSubcommand.add(subparsers, parents)
     RogiSubcommand.add(subparsers, parents)
     TrainSubcommand.add(subparsers, parents)
+    FinetuneSubcommand.add(subparsers, parents)
 
     args = parser.parse_args()
     logfile, verbose, mode, func = (
@@ -54,8 +56,8 @@ def main():
         force=True,
     )
 
-    handler = logging.StreamHandler(stream=sys.stdout)
-    logger.addHandler(handler)
+    # handler = logging.StreamHandler(stream=sys.stdout)
+    # logger.addHandler(handler)
 
     logger.info(f"Running in mode '{mode}' with args: {vars(args)}")
 

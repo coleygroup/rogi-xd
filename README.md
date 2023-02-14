@@ -79,7 +79,7 @@ optional arguments:
   -r REPEATS, --repeats REPEATS
   -N N                  the number of data to subsample
   -o OUTPUT, --output OUTPUT
-                        the to which results should be written. If unspecified, will write to 'results/raw/FEATURIZER.csv'
+                        the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZER.csv'
   -m MODEL_DIR, --model-dir MODEL_DIR
                         the directory of a saved model for VAE or GIN featurizers
   -b BATCH_SIZE, --batch-size BATCH_SIZE
