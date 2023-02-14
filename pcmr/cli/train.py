@@ -16,15 +16,16 @@ from torch import nn
 import torch.utils.data
 import torchdrug.data
 
-from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
-from pcmr.models.vae import (
-    LitVAE,
-    RnnDecoder,
-    RnnEncoder,
-    Tokenizer,
+from ae_utils.modules import RnnDecoder, RnnEncoder
+from ae_utils.char import (
+    LitCVAE,
+    Tokenizer, 
     UnsupervisedDataset,
     CachedUnsupervisedDataset,
+    SupervisedDataset
 )
+from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
+
 from pcmr.cli.command import Subcommand
 from pcmr.cli.utils import NOW, ModelType, bounded, fuzzy_lookup
 
@@ -90,7 +91,7 @@ class TrainSubcommand(Subcommand):
             smis = choices(smis, k=args.N)
 
         if args.gpus is None:
-            logger.debug("GPU unspecifeid... Will use GPU if available")
+            logger.debug("GPU unspecified... Will use GPU if available")
             args.gpus = 1 if torch.cuda.is_available() else 0
 
         if len(smis) == 0:
@@ -188,15 +189,16 @@ class TrainSubcommand(Subcommand):
         embedding = nn.Embedding(len(tokenizer), 64, tokenizer.PAD)
         encoder = RnnEncoder(embedding)
         decoder = RnnDecoder(tokenizer.SOS, tokenizer.EOS, embedding)
-        model = LitVAE(tokenizer, encoder, decoder)
+        model = LitCVAE(tokenizer, encoder, decoder)
 
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset
-        dataset = dset_cls(smis, tokenizer)
+        dset = dset_cls(smis, tokenizer)
+        dset = SupervisedDataset(dset, None)
 
-        n_train = int(0.8 * len(dataset))
-        n_val = len(dataset) - n_train
-        train_dset, val_dset = torch.utils.data.random_split(dataset, [n_train, n_val])
+        n_train = int(0.8 * len(dset))
+        n_val = len(dset) - n_train
+        train_set, val_set = torch.utils.data.random_split(dset, [n_train, n_val])
 
         logger = WandbLogger(project=f"{MODEL_NAME}-{dataset_name}")
         checkpoint = ModelCheckpoint(
@@ -219,13 +221,13 @@ class TrainSubcommand(Subcommand):
         batch_size = 256
         num_workers = 0 if cache else num_workers
         train_loader = torch.utils.data.DataLoader(
-            train_dset,
+            train_set,
             batch_size,
             num_workers=num_workers,
-            collate_fn=UnsupervisedDataset.collate_fn,
+            collate_fn=dset.collate_fn,
         )
         val_loader = torch.utils.data.DataLoader(
-            val_dset, batch_size, num_workers=num_workers, collate_fn=UnsupervisedDataset.collate_fn
+            val_set, batch_size, num_workers=num_workers, collate_fn=dset.collate_fn
         )
 
         if chkpt:

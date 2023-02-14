@@ -91,7 +91,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         if v_reg is None:
             self.v_reg = LinearScheduler(0, 0.1, 20)
         elif isinstance(v_reg, float):
-            self.v_reg = ConstantScheduler(v_reg)
+            self.v_reg = ConstantScheduler(v_reg, "kl")
         elif isinstance(v_reg, Scheduler):
             self.v_reg = v_reg
         else:
@@ -155,7 +155,7 @@ class LitVAE(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoadMixin):
         return self.encode(batch)
 
     def on_train_epoch_start(self):
-        self.log(f"v/{self.encoder.reg.name}", self.v_reg.v)
+        self.log(f"v/{self.v_reg.name}", self.v_reg.v)
 
     def training_epoch_end(self, *args):
         self.v_reg.step()
