@@ -5,13 +5,11 @@ from os import PathLike
 from pathlib import Path
 from typing import Iterable, Optional
 
-import numpy as np
 import pandas as pd
 
 from ae_utils.char import LitCVAE
 from pcmr.data import data
-from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
-from pcmr.featurizers.lit import VAEFeaturizer
+from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry, VAEFeaturizer
 from pcmr.models.gin import LitAttrMaskGIN
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
@@ -156,5 +154,4 @@ class RogiSubcommand(Subcommand):
         else:
             model = None
 
-        f = featurizer_cls(model=model, batch_size=batch_size, num_workers=num_workers)
-        return f
+        return featurizer_cls(model=model, batch_size=batch_size, num_workers=num_workers)

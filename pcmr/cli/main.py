@@ -6,6 +6,7 @@ from pcmr.cli.finetune import FinetuneSubcommand
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.cli.train import TrainSubcommand
+from pcmr.cli.coarse_grain import CoarseGrainSubcommand
 from pcmr.cli.utils import NOW, pop_attr
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ def main():
     RogiSubcommand.add(subparsers, parents)
     TrainSubcommand.add(subparsers, parents)
     FinetuneSubcommand.add(subparsers, parents)
+    CoarseGrainSubcommand.add(subparsers, parents)
 
     args = parser.parse_args()
     logfile, verbose, mode, func = (

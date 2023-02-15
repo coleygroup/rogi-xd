@@ -3,6 +3,7 @@ from enum import auto
 import functools
 from typing import Any, Callable, NamedTuple, Optional
 
+import numpy as np
 from tdc.utils import fuzzy_search
 
 from pcmr.utils import AutoName
@@ -15,6 +16,14 @@ class RogiCalculationRecord(NamedTuple):
     dataset_and_task: str
     n_valid: int
     rogi: float
+
+
+class CoarseGrainCalculationRecord(NamedTuple):
+    features: str
+    dataset_and_task: str
+    n_valid: int
+    thresholds: np.ndarray
+    sds: np.ndarray
 
 
 class ModelType(AutoName):

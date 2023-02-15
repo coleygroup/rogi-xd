@@ -35,7 +35,10 @@ class HuggingFaceFeaturizerMixin(BatchSizeMixin):
         self.fe.tokenizer.padding_size = "right"
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
-        return torch.stack([H[0, self.CLASS_TOKEN_IDX, :] for H in self.fe(smis)]).numpy()
+        return torch.stack(
+            [H[0, self.CLASS_TOKEN_IDX, :]
+            for H in self.fe(smis, batch_size=self.batch_size)]
+        ).numpy()
 
     def finetune(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]) -> Self:
         raise NotImplementedError
@@ -54,13 +57,13 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
 @FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
     MODEL_ID = "ncfrey/ChemGPT-1.2B"
-    DEFAULT_BATCH_SIZE = 1
+    DEFAULT_BATCH_SIZE = 8
     CLASS_TOKEN_IDX = -1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fe.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
-        self.fe.tokenizer.padding_size = "left"
+        self.fe.tokenizer.padding_side = "left"
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         return super().__call__([sf.encoder(smi, False) for smi in smis])
