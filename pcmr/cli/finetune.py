@@ -119,7 +119,7 @@ class FinetuneSubcommand(Subcommand):
         kf = KFold(args.num_folds)
         for i, (train_idxs, _) in enumerate(kf.split(smis, y)):
             logger.info(f"FOLD {i}:")
-            logger.debug(f"  Reloading featurizer")
+            logger.debug("  Reloading featurizer")
             featurizer = FinetuneSubcommand.build_featurizer(
                 args.featurizer, args.batch_size, args.model_dir, args.num_workers
             )

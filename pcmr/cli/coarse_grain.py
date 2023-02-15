@@ -1,11 +1,9 @@
-from argparse import ArgumentParser, Namespace
+from argparse import Namespace
 from itertools import repeat
 import logging
-from os import PathLike
 from pathlib import Path
 from typing import Iterable, Optional
 
-import numpy as np
 import pandas as pd
 
 from pcmr.data import data
