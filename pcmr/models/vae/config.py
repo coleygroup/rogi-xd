@@ -9,31 +9,31 @@ from pcmr.models.vae.modules import RnnDecoder, RnnEncoder
 from pcmr.models.vae.regularizers import Regularizer
 from pcmr.models.vae.samplers import Sampler
 from pcmr.models.vae.tokenizer import Tokenizer
-from pcmr.utils.utils import Config
+from pcmr.utils import Config
 
 
 @dataclass
-class FactoryConfig:
+class FactoryConfig(Config):
     alias: str
     config: Config
 
 
 @dataclass
-class TokenizerConfig:
+class TokenizerConfig(Config):
     pattern: str
     tokens: Iterable[str]
     st: dict[str, str]
 
 
 @dataclass
-class EmbeddingConfig:
+class EmbeddingConfig(Config):
     num_embeddings: int
     embedding_dim: int
     padding_idx: int
 
 
 @dataclass
-class RnnEncoderConfig:
+class RnnEncoderConfig(Config):
     embedding: nn.Embedding
     d_h: int
     n_layers: int
@@ -44,7 +44,7 @@ class RnnEncoderConfig:
 
 
 @dataclass
-class RnnDecoderConfig:
+class RnnDecoderConfig(Config):
     SOS: int
     EOS: int
     embedding: nn.Embedding
@@ -63,14 +63,3 @@ class VAEConfig(Config):
     lr: float
     v_reg: FactoryConfig
     shared_emb: bool
-
-
-def to_config(self) -> dict:
-    return {
-        "tokenizer": self.tokenizer.to_config(),
-        "encoder": self.encoder.to_config(),
-        "decoder": self.decoder.to_config(),
-        "lr": self.lr,
-        "v_reg": {"alias": self.v_reg.alias, "config": self.v_reg.to_config()},
-        "shared_enb": self.encoder.emb is self.decoder.emb,
-    }

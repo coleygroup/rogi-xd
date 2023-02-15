@@ -65,7 +65,9 @@ class FinetuneSubcommand(Subcommand):
         parser.add_argument(
             "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
-        parser.add_argument("-k", "--num-folds", type=int, default=5, help="the number of folds in cross-validation")
+        parser.add_argument(
+            "-k", "--num-folds", type=int, default=5, help="the number of folds in cross-validation"
+        )
         parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
         parser.add_argument(
             "-o",
@@ -101,7 +103,6 @@ class FinetuneSubcommand(Subcommand):
         args.output = args.output or Path(f"results/raw/finetune/{args.featurizer}.csv")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
-
         dataset, task = args.dataset_task
         dt_string = f"{dataset}/{task}" if task else dataset
         logger.info(f"running dataset/task={dt_string}")
@@ -132,7 +133,7 @@ class FinetuneSubcommand(Subcommand):
 
             logger.info(f"  ROGI: {score:0.3f}")
             logger.info(f"  n_valid: {n_valid}")
-        
+
         df = pd.DataFrame(records)
         print(df)
         df.to_csv(args.output, index=False)

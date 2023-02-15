@@ -42,8 +42,11 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
         gpus = 1 if torch.cuda.is_available() else 0
         trainer = pl.Trainer(
-            False, False, accelerator="gpu" if gpus else "cpu", devices=gpus or 1,
-            enable_model_summary=False
+            False,
+            False,
+            accelerator="gpu" if gpus else "cpu",
+            devices=gpus or 1,
+            enable_model_summary=False,
         )
         Xs = trainer.predict(self.model, dataloader)
 
@@ -55,8 +58,12 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
         gpus = 1 if torch.cuda.is_available() else 0
         trainer = pl.Trainer(
-            None, False, accelerator="gpu" if gpus else "cpu", devices=gpus or 1, max_epochs=20,
-            enable_model_summary=False
+            None,
+            False,
+            accelerator="gpu" if gpus else "cpu",
+            devices=gpus or 1,
+            max_epochs=20,
+            enable_model_summary=False,
         )
         trainer.fit(self.model, train_loader, val_loader)
 
@@ -155,7 +162,10 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
             collate_fn=SupervisedDataset.collate_fn,
         )
         val_loader = torch.utils.data.DataLoader(
-            val, self.finetune_batch_size, num_workers=self.num_workers, collate_fn=SupervisedDataset.collate_fn
+            val,
+            self.finetune_batch_size,
+            num_workers=self.num_workers,
+            collate_fn=SupervisedDataset.collate_fn,
         )
 
         return train_loader, val_loader

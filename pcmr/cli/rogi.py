@@ -136,7 +136,6 @@ class RogiSubcommand(Subcommand):
             df.to_csv(args.output, index=False)
             logger.info(f"Saved output CSV to '{args.output}'")
 
-
     @staticmethod
     def build_featurizer(
         featurizer: str,

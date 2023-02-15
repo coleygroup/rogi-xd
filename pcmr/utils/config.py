@@ -20,12 +20,11 @@ class Configurable(Protocol):
 class Config:
     def save(self, path):
         d = {
-            k: v.to_config() if isinstance(v, Configurable) else v
-            for k, v in asdict(self).items()
+            k: v.to_config() if isinstance(v, Configurable) else v for k, v in asdict(self).items()
         }
 
         path = Path(path).write_text(json.dumps(d, indent=2))
 
     @classmethod
     def load(path) -> Config:
-        pass 
+        d = json.load(Path(path).read_text())

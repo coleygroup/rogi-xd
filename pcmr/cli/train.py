@@ -19,10 +19,10 @@ import torchdrug.data
 from ae_utils.modules import RnnDecoder, RnnEncoder
 from ae_utils.char import (
     LitCVAE,
-    Tokenizer, 
+    Tokenizer,
     UnsupervisedDataset,
     CachedUnsupervisedDataset,
-    SupervisedDataset
+    SupervisedDataset,
 )
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 
@@ -221,10 +221,7 @@ class TrainSubcommand(Subcommand):
         batch_size = 256
         num_workers = 0 if cache else num_workers
         train_loader = torch.utils.data.DataLoader(
-            train_set,
-            batch_size,
-            num_workers=num_workers,
-            collate_fn=dset.collate_fn,
+            train_set, batch_size, num_workers=num_workers, collate_fn=dset.collate_fn
         )
         val_loader = torch.utils.data.DataLoader(
             val_set, batch_size, num_workers=num_workers, collate_fn=dset.collate_fn

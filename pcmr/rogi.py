@@ -312,10 +312,10 @@ def rogi(
     max_dist: Optional[float] = None,
     min_dt: float = 0.01,
     nboots: int = 1,
-    return_cg: bool = False
+    return_cg: bool = False,
 ) -> Union[
     tuple[float, Optional[float], int, tuple[np.ndarray, np.ndarray]],
-    tuple[float, Optional[float], int]
+    tuple[float, Optional[float], int],
 ]:
     """calculate the ROGI of a dataset and (optionally) its uncertainty
 
@@ -401,5 +401,5 @@ def rogi(
 
     if return_cg:
         return score, uncertainty, len(y_), (thresholds, sds)
-    
+
     return score, uncertainty, len(y_)
