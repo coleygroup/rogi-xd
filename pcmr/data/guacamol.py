@@ -21,19 +21,12 @@ class GuacaMolDataModule(DataModule):
     __seed = 42
     __smis = MolGen("ZINC", CACHE_DIR).get_data().sample(10000, random_state=__seed).smiles.tolist()
     __ORACLE_NAMES = {
-        "LOGP",
-        "AMLODIPINE_MPO",
         "SCAFFOLD HOP",
         "MEDIAN 1",
-        "RANOLAZINE_MPO",
         "ARIPIPRAZOLE_SIMILARITY",
-        "FEXOFENADINE_MPO",
         "ZALEPLON_MPO",
         "VALSARTAN_SMARTS",
         "CELECOXIB_REDISCOVERY",
-        "PERINDOPRIL_MPO",
-        "OSIMERTINIB_MPO",
-        "QED",
     }
     __cache = {}
 
