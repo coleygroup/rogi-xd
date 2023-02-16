@@ -48,9 +48,6 @@ class ChemBERTaFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
     DEFAULT_BATCH_SIZE = 32
     CLASS_TOKEN_IDX = 0
 
-    def __str__(self) -> str:
-        return "chemberta"
-
 
 @FeaturizerRegistry.register("chemgpt")
 class ChemGPTFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
@@ -65,6 +62,3 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         return super().__call__([sf.encoder(smi, False) for smi in smis])
-
-    def __str__(self) -> str:
-        return "chemgpt"

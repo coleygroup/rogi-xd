@@ -65,7 +65,7 @@ class CoarseGrainSubcommand(RogiSubcommand):
             args.datasets_tasks.extend(
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
-        args.output = args.output or Path(f"results/raw/cg/{args.featurizer}.csv")
+        args.output = args.output or Path(f"results/raw/cg/{args.featurizer}.json")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = CoarseGrainSubcommand.build_featurizer(
@@ -88,6 +88,5 @@ class CoarseGrainSubcommand(RogiSubcommand):
         finally:
             df = pd.DataFrame(rows)
             print(df)
-            # df.to_json()
-            df.to_json(args.output.with_suffix(".json"), indent=2)
+            df.to_json(args.output, indent=2)
             logger.info(f"Saved output CSV to '{args.output}'")

@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 from datetime import datetime
 from enum import auto
 import functools
-from typing import Any, Callable, NamedTuple, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 from tdc.utils import fuzzy_search
@@ -11,19 +12,30 @@ from pcmr.utils import AutoName
 NOW = datetime.now().isoformat(timespec="seconds")
 
 
-class RogiCalculationRecord(NamedTuple):
+@dataclass(frozen=True)
+class BaseRecord:
     features: str
     dataset_and_task: str
     n_valid: int
+
+
+@dataclass(frozen=True)
+class RogiCalculationRecord(BaseRecord):
     rogi: float
 
 
-class CoarseGrainCalculationRecord(NamedTuple):
-    features: str
-    dataset_and_task: str
-    n_valid: int
+@dataclass(frozen=True)
+class CoarseGrainCalculationRecord(BaseRecord):
     thresholds: np.ndarray
     sds: np.ndarray
+
+
+@dataclass(frozen=True)
+class CrossValdiationRecord(BaseRecord):
+    model: str
+    r2: float
+    rmse: float
+    mae: float
 
 
 class ModelType(AutoName):

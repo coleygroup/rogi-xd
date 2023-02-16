@@ -7,21 +7,13 @@ from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.cli.train import TrainSubcommand
 from pcmr.cli.coarse_grain import CoarseGrainSubcommand
+from pcmr.cli.cross_val import CrossValidateSubcommand
 from pcmr.cli.utils import NOW, pop_attr
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_LOGFILE = f"logs/{NOW}.log"
 LOG_LEVELS = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-
-
-def log_exceptions(exc_type, exc_value, exc_traceback):
-    """log exceptions before rethrowing them. taken from https://stackoverflow.com/a/16993115"""
-    if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
-        return
-
-    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
 
 
 def main():
@@ -39,11 +31,16 @@ def main():
     parent.add_argument("-v", "--verbose", action="count", default=0, help="the verbosity level")
 
     parents = [parent]
-    ListSubcommand.add(subparsers, parents)
-    RogiSubcommand.add(subparsers, parents)
-    TrainSubcommand.add(subparsers, parents)
-    FinetuneSubcommand.add(subparsers, parents)
-    CoarseGrainSubcommand.add(subparsers, parents)
+    SUBCOMMANDS = [
+        ListSubcommand,
+        RogiSubcommand,
+        TrainSubcommand,
+        FinetuneSubcommand,
+        CoarseGrainSubcommand,
+        CrossValidateSubcommand
+    ]
+    for subcommand in SUBCOMMANDS:
+        subcommand.add(subparsers, parents)
 
     args = parser.parse_args()
     logfile, verbose, mode, func = (
@@ -57,9 +54,6 @@ def main():
         datefmt="%Y-%m-%dT%H:%M:%S",
         force=True,
     )
-
-    # handler = logging.StreamHandler(stream=sys.stdout)
-    # logger.addHandler(handler)
 
     logger.info(f"Running in mode '{mode}' with args: {vars(args)}")
 
