@@ -25,7 +25,6 @@ class GuacaMolDataModule(DataModule):
         "MEDIAN 1",
         "ARIPIPRAZOLE_SIMILARITY",
         "ZALEPLON_MPO",
-        "VALSARTAN_SMARTS",
         "CELECOXIB_REDISCOVERY",
     }
     __cache = {}

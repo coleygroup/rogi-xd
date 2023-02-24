@@ -1,5 +1,7 @@
 from enum import auto
-from typing import NamedTuple
+from typing import NamedTuple, Optional
+
+import numpy as np
 
 from pcmr.utils.utils import AutoName
 
@@ -23,3 +25,11 @@ class FingerprintConfig(NamedTuple):
     fp: Fingerprint = Fingerprint.MORGAN
     radius: int = 2
     length: int = 2048
+
+
+class RogiResult(NamedTuple):
+    rogi: float
+    uncertainty: Optional[float]
+    n_valid: int
+    thresholds: np.ndarray
+    sds_cg: np.ndarray

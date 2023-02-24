@@ -13,7 +13,7 @@ from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
-from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric
+from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult
 
 logger = logging.getLogger(__name__)
 
@@ -312,11 +312,7 @@ def rogi(
     max_dist: Optional[float] = None,
     min_dt: float = 0.01,
     nboots: int = 1,
-    return_cg: bool = False,
-) -> Union[
-    tuple[float, Optional[float], int, tuple[np.ndarray, np.ndarray]],
-    tuple[float, Optional[float], int],
-]:
+) -> RogiResult:
     """calculate the ROGI of a dataset and (optionally) its uncertainty
 
     NOTE: invalid scores or inputs will be silently removed before calculating the ROGI
@@ -355,15 +351,8 @@ def rogi(
 
     Returns
     -------
-    float
-        the ROGI
-    float | None
-        the uncertainty in the ROGI score. `None` if `nboots <= 1`
-    int
-        the number of inputs used to calculate the ROGI post-masking
-    tuple[np.ndarray, np.ndarray]
-        the corase grained distance thresholds and standard deviations. only returned if
-        `return_cg` is `True`
+    RogiResult
+        the result of the calculation. See :class:`~pcmr.utils.rogi.RogiResult` for more details
     """
     y = np.array(y)
 
@@ -378,8 +367,8 @@ def rogi(
     if (n_invalid := len(y) - len(y_)) > 0:
         logger.info(f"Removed {n_invalid} input(s) with invalid features or scores")
 
-    thresholds, sds = coarse_grain(D, y_, min_dt)
-    score: float = sds[0] - trapezoid(sds, thresholds)
+    thresholds, sds_cg = coarse_grain(D, y_, min_dt)
+    score: float = sds_cg[0] - trapezoid(sds_cg, thresholds)
 
     if nboots > 1:
         logger.debug(f"Bootstrapping with {nboots} samples")
@@ -388,18 +377,15 @@ def rogi(
 
         boot_scores = []
         for _ in range(nboots):
-            idxs = np.random.choice(range(size), size=size, replace=True)
+            idxs = np.random.choice(range(size), size, True)
             D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
-            thresholds, sds = coarse_grain(D, y_, min_dt)
-            boot_score: float = sds[0] - trapezoid(sds, thresholds)
+            thresholds_, sds_cg_ = coarse_grain(D, y_, min_dt)
+            boot_score = sds_cg[0] - trapezoid(sds_cg_, thresholds_)
             boot_scores.append(boot_score)
 
         uncertainty = np.std(boot_scores)
     else:
         uncertainty = None
 
-    if return_cg:
-        return score, uncertainty, len(y_), (thresholds, sds)
-
-    return score, uncertainty, len(y_)
+    return RogiResult(score, uncertainty, len(y_), thresholds, sds_cg)
