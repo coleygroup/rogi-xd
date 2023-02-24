@@ -14,8 +14,9 @@ from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.models.gin.model import LitAttrMaskGIN
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
-from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import RogiCalculationRecord, dataset_and_task
+from pcmr.cli.utils.command import Subcommand
+from pcmr.cli.utils.args import dataset_and_task
+from pcmr.cli.utils.records import RogiRecord
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ def _calc_rogi(f: FeaturizerBase, smis: Iterable[str], y: Iterable[float]):
 
 def calc_rogi(
     f: FeaturizerBase, dataset: str, task: Optional[str], n: int, repeats: int
-) -> list[RogiCalculationRecord]:
+) -> list[RogiRecord]:
     df = data.get_all_data(dataset, task)
 
     dt_string = f"{dataset}/{task}" if task else dataset
@@ -39,10 +40,10 @@ def calc_rogi(
         for _ in range(repeats):
             df_sample = df.sample(n)
             score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
-            results.append(RogiCalculationRecord(f.alias, dt_string, n_valid, score))
+            results.append(RogiRecord(f.alias, dt_string, n_valid, score))
     else:
         score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
-        result = RogiCalculationRecord(f.alias, dt_string, n_valid, score)
+        result = RogiRecord(f.alias, dt_string, n_valid, score)
         results = list(repeat(result, repeats))
 
     return results
@@ -129,7 +130,7 @@ class FinetuneSubcommand(Subcommand):
             featurizer = featurizer.finetune((smis_train, y_train))
 
             score, n_valid = _calc_rogi(featurizer, smis, y)
-            records.append(RogiCalculationRecord(featurizer.alias, dt_string, n_valid, score))
+            records.append(RogiRecord(featurizer.alias, dt_string, n_valid, score))
 
             logger.info(f"  ROGI: {score:0.3f}")
             logger.info(f"  n_valid: {n_valid}")

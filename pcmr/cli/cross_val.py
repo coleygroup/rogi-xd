@@ -14,7 +14,7 @@ from sklearn.cross_decomposition import PLSRegression
 
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.data import data
-from pcmr.cli.utils import CrossValdiationRecord, dataset_and_task
+from pcmr.cli.utils.records import CrossValdiationResult, dataset_and_task
 from pcmr.featurizers.base import FeaturizerBase
 
 logger = logging.getLogger(__name__)
@@ -30,9 +30,9 @@ def run_cv(
     name2model: dict,
     featurizer: FeaturizerBase,
     cv: KFold
-) -> list[CrossValdiationRecord]:
+) -> list[CrossValdiationResult]:
     dt_string = f"{dataset}/{task}" if task else dataset
-    logger.info(f"running dataset/task={dt_string}")
+    logger.info(f"DATASET/TASK: {dt_string}")
 
     df = data.get_all_data(dataset, task)
     if len(df) > N:
@@ -44,13 +44,14 @@ def run_cv(
 
     records = []
     for name, model in name2model.items():
+        logger.info(f"  MODEL: {name}")
         scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1)
         r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
         r2 = r2.mean()
         rmse = np.sqrt(-neg_mse).mean()
         mae = -neg_mae.mean()
 
-        record = CrossValdiationRecord(featurizer.alias, dt_string, len(X), name, r2, rmse, mae)
+        record = CrossValdiationResult(featurizer.alias, dt_string, len(X), name, r2, rmse, mae)
         records.append(record)
     
     return records

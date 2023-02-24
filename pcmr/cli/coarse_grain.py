@@ -11,7 +11,7 @@ from pcmr.featurizers import FeaturizerBase, VAEFeaturizer
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
 from pcmr.cli.rogi import RogiSubcommand
-from pcmr.cli.utils import CoarseGrainCalculationRecord, dataset_and_task
+from pcmr.cli.utils.records import CoarseGrainCalculationRecord, dataset_and_task
 
 logger = logging.getLogger(__name__)
 

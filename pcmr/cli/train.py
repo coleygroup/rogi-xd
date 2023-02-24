@@ -26,8 +26,9 @@ from ae_utils.char import (
 )
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 
-from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import NOW, ModelType, bounded, fuzzy_lookup
+from pcmr.cli.utils import NOW
+from pcmr.cli.utils.args import ModelType, bounded, fuzzy_lookup
+from pcmr.cli.utils.command import Subcommand
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision("high")

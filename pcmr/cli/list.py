@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, FileType, Namespace
 
 from pcmr.data import data
-from pcmr.cli.command import Subcommand
+from pcmr.cli.utils.command import Subcommand
 
 
 class ListSubcommand(Subcommand):
