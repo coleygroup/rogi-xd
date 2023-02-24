@@ -1,11 +1,17 @@
 from argparse import ArgumentParser, Namespace
-from itertools import repeat
 import logging
 from os import PathLike
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional, Union
+import numpy as np
 
 import pandas as pd
+from sklearn.model_selection import KFold, cross_validate
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.cross_decomposition import PLSRegression
 
 from ae_utils.char import LitCVAE
 from pcmr.data import data
@@ -13,43 +19,95 @@ from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry, VAEFeaturizer
 from pcmr.models.gin import LitAttrMaskGIN
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
-from pcmr.cli.command import Subcommand
-from pcmr.cli.utils import RogiCalculationRecord, dataset_and_task
+
+from pcmr.cli.utils.args import dataset_and_task
+from pcmr.cli.utils.command import Subcommand
+from pcmr.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCrossValRecord
 
 logger = logging.getLogger(__name__)
 
+SEED = 42
+SCORING = 'r2', 'neg_mean_squared_error', 'neg_mean_absolute_error'
+MODELS = {
+    'KNN': KNeighborsRegressor(), 
+    'PLS': PLSRegression(), 
+    'RF': RandomForestRegressor(n_estimators=50, n_jobs=-1, random_state=SEED), 
+    'SVR': SVR(), 
+    'MLP': MLPRegressor(random_state=SEED)
+}
 
-def _calc_rogi(f: FeaturizerBase, smis: Iterable[str], y: Iterable[float]):
-    X = f(smis)
-    score, _, n_valid = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
 
-    return score, n_valid
+def _calc_cv(
+    X: np.ndarray, y: np.ndarray, cv: KFold, name2model: dict = None
+) -> list[CrossValdiationResult]:
+    name2model = name2model or MODELS
+    records = []
+    
+    for name, model in name2model.items():
+        logger.info(f"  MODEL: {name}")
+        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1)
+        r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
+        r2 = r2.mean()
+        rmse = np.sqrt(-neg_mse).mean()
+        mae = -neg_mae.mean()
+        records.append(CrossValdiationResult(name, r2, rmse, mae))
+    
+    return records
 
 
-def calc_rogi(
-    f: FeaturizerBase, dataset: str, task: Optional[str], n: int, repeats: int
-) -> list[RogiCalculationRecord]:
+def calc(
+    f: FeaturizerBase,
+    dataset: str,
+    task: Optional[str],
+    n: int,
+    repeats: int,
+    cv: Optional[KFold] = None
+) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get_all_data(dataset, task)
-
     dt_string = f"{dataset}/{task}" if task else dataset
+
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
-        results = []
+
+        records = []
         for _ in range(repeats):
             df_sample = df.sample(n)
-            score, n_valid = _calc_rogi(f, df_sample.smiles.tolist(), df_sample.y.tolist())
-            results.append(RogiCalculationRecord(f.alias, dt_string, n_valid, score))
+            X = f(df_sample.smiles.tolist())
+            y = df_sample.y.values
+            rr = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+            if cv:
+                cvrs = _calc_cv(X, y, cv)
+                cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
+                records.extend(cv_recs)
+            else:
+                record = RogiRecord(f.alias, dt_string, rr)
+                records.append(record)
+                
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
-        results = []
+        records = []
         for _ in range(repeats):
-            score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
-            results.append(RogiCalculationRecord(f.alias, dt_string, n_valid, score))
-    else:
-        score, n_valid = _calc_rogi(f, df.smiles.tolist(), df.y.tolist())
-        result = RogiCalculationRecord(f.alias, dt_string, n_valid, score)
-        results = list(repeat(result, repeats))
+            X = f(df.smiles.tolist())
+            rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+            if cv:
+                cvrs = _calc_cv(X, y, cv)
+                cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
+                records.extend(cv_recs)
+            else:
+                record = RogiRecord(f.alias, dt_string, rr)
+                records.append(record)
 
-    return results
+    else:
+        X = f(df.smiles.tolist())
+        rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+        if cv:
+            cvrs = _calc_cv(X, y, cv)
+            cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
+            records.extend(cv_recs)
+        else:
+            record = RogiRecord(f.alias, dt_string, rr)
+            records = [record for _ in range(repeats)]
+
+    return records
 
 
 class RogiSubcommand(Subcommand):
@@ -101,6 +159,8 @@ class RogiSubcommand(Subcommand):
             default=0,
             help="the number of CPUs to parallelize data loading over, if possible.",
         )
+        parser.add_argument("--coarse-grain", "--cg", action="store_true")
+        parser.add_argument("-k", "--num-folds", nargs="?", type=int, const=5)
 
         return parser
 
@@ -110,31 +170,36 @@ class RogiSubcommand(Subcommand):
             args.datasets_tasks.extend(
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
-        args.output = args.output or Path(f"results/raw/rogi/{args.featurizer}.csv")
+
+        suffix = ".json" if args.coarse_grain else ".csv"
+        args.output = args.output or Path(f"results/raw/rogi/{args.featurizer}.{suffix}")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
             args.featurizer, args.batch_size, args.model_dir, args.num_workers
         )
 
-        rows = []
+        records = []
         try:
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    results = calc_rogi(f, d, t, args.N, args.repeats)
-                    rows.extend(results)
+                    records = calc(f, d, t, args.N, args.repeats)
+                    records.extend(records)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
                     logger.error(e)
-                except KeyboardInterrupt:
-                    logger.error("Interrupt detected! Exiting...")
-                    break
         finally:
-            df = pd.DataFrame(rows)
+            df = pd.DataFrame(records)
+            if not args.coarse_grain:
+                df = df.drop(["thresholds", "sds_cg"], axis=1)
             print(df)
-            df.to_csv(args.output, index=False)
-            logger.info(f"Saved output CSV to '{args.output}'")
+
+            if args.coarse_grain:
+                df.to_json(args.output, indent=2)
+            else:
+                df.to_csv(args.output, index=False)
+            logger.info(f"Saved output to '{args.output}'")
 
     @staticmethod
     def build_featurizer(
