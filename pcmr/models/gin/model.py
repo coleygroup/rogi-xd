@@ -12,7 +12,7 @@ from torchdrug.tasks import AttributeMasking
 from torchdrug.data import feature
 
 from ae_utils.utils.mixins import LoggingMixin, SaveAndLoadMixin
-from pcmr.utils import Configurable
+from ae_utils.utils.config import Configurable
 
 DEFAULT_ATOM_DIM = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1
 DEFAULT_BOND_DIM = sum(len(v) for v in [feature.bond_type_vocab, feature.bond_dir_vocab])
@@ -83,7 +83,3 @@ class LitAttrMaskGIN(pl.LightningModule, Configurable, LoggingMixin, SaveAndLoad
             "mask_rate": self.task.mask_rate,
             "lr": self.lr,
         }
-
-    @classmethod
-    def from_config(cls, config: dict) -> LitAttrMaskGIN:
-        return cls(**config)
