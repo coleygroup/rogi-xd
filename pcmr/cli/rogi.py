@@ -35,6 +35,7 @@ MODELS = {
     'SVR': SVR(), 
     'MLP': MLPRegressor(random_state=SEED)
 }
+N_JOBS = 8
 
 
 def _calc_rogi(
@@ -92,7 +93,7 @@ def _calc_cv(
     cvrs = []
     for name, model in name2model.items():
         logger.info(f"  MODEL: {name}")
-        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1)
+        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1, n_jobs=N_JOBS)
         r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
         r2 = r2.mean()
         rmse = np.sqrt(-neg_mse).mean()
@@ -148,7 +149,7 @@ class RogiSubcommand(Subcommand):
         parser.add_argument(
             "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
-        parser.add_argument("-r", "--repeats", type=int, default=1)
+        parser.add_argument("-r", "--repeats", type=int)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
         parser.add_argument(
             "-o",
@@ -157,13 +158,13 @@ class RogiSubcommand(Subcommand):
             help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZER.csv'",
         )
         parser.add_argument(
-            "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
-        )
-        parser.add_argument(
             "-b",
             "--batch-size",
             type=int,
             help="the batch size to use in the featurizer. If unspecified, the featurizer will select its own batch size",
+        )
+        parser.add_argument(
+            "-m", "--model-dir", help="the directory of a saved model for VAE or GIN featurizers"
         )
         parser.add_argument(
             "-c",
@@ -172,6 +173,7 @@ class RogiSubcommand(Subcommand):
             default=0,
             help="the number of CPUs to parallelize data loading over, if possible.",
         )
+        parser.add_argument("--reinit", action="store_true")
         parser.add_argument("--coarse-grain", "--cg", action="store_true")
         parser.add_argument("-k", "--num-folds", "--cv", nargs="?", type=int, const=5)
 
@@ -184,12 +186,12 @@ class RogiSubcommand(Subcommand):
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
 
-        suffix = ".json" if args.coarse_grain else ".csv"
+        suffix = "json" if args.coarse_grain else "csv"
         args.output = args.output or Path(f"results/raw/rogi/{args.featurizer}.{suffix}")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
-            args.featurizer, args.batch_size, args.model_dir, args.num_workers
+            args.featurizer, args.batch_size, args.model_dir, args.num_workers, args.reinit
         )
         cv = KFold(args.num_folds, shuffle=True, random_state=SEED) if args.num_folds else None
 
@@ -198,8 +200,8 @@ class RogiSubcommand(Subcommand):
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    records = calc(f, d, t, args.N, args.repeats, cv)
-                    records.extend(records)
+                    records_ = calc(f, d, t, args.N, args.repeats, cv)
+                    records.extend(records_)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
                     logger.error(e)
@@ -221,15 +223,19 @@ class RogiSubcommand(Subcommand):
         batch_size: Optional[int] = None,
         model_dir: Optional[PathLike] = None,
         num_workers: int = 0,
+        reinit: bool = False,
     ) -> FeaturizerBase:
         featurizer_cls = FeaturizerRegistry[featurizer]
         if featurizer == "vae":
             model = LitCVAE.load(model_dir)
         elif featurizer == "gin":
             model = LitAttrMaskGIN.load(model_dir)
+            # model = LitAttrMaskGIN.from_config(model.to_config())
         elif featurizer in ("chemgpt", "chemberta"):
             model = None
         else:
             model = None
 
-        return featurizer_cls(model=model, batch_size=batch_size, num_workers=num_workers)
+        return featurizer_cls(
+            model=model, batch_size=batch_size, num_workers=num_workers, reinit=reinit
+        )

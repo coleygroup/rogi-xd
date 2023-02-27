@@ -11,7 +11,7 @@ from pcmr.featurizers import FeaturizerBase, VAEFeaturizer
 from pcmr.rogi import rogi
 from pcmr.utils import Metric
 from pcmr.cli.rogi import RogiSubcommand
-from pcmr.cli.utils.records import CoarseGrainCalculationRecord, dataset_and_task
+from pcmr.cli.utils import RogiRecord, dataset_and_task
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def _calc_cg(f: FeaturizerBase, smis: Iterable[str], y: Iterable[float]):
 
 def calc_cg(
     f: FeaturizerBase, dataset: str, task: Optional[str], n: int, repeats: int
-) -> list[CoarseGrainCalculationRecord]:
+) -> list[RogiRecord]:
     df = data.get_all_data(dataset, task)
 
     dt_string = f"{dataset}/{task}" if task else dataset
@@ -38,18 +38,18 @@ def calc_cg(
         for _ in range(repeats):
             df_sample = df.sample(n)
             n_valid, thresholds, sds = _calc_cg(f, df_sample.smiles.tolist(), df_sample.y.tolist())
-            record = CoarseGrainCalculationRecord(f.alias, dt_string, n_valid, thresholds, sds)
+            record = RogiRecord(f.alias, dt_string, n_valid, thresholds, sds)
             records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
         records = []
         for _ in range(repeats):
             n_valid, thresholds, sds = _calc_cg(f, df.smiles.tolist(), df.y.tolist())
-            record = CoarseGrainCalculationRecord(f.alias, dt_string, n_valid, thresholds, sds)
+            record = RogiRecord(f.alias, dt_string, n_valid, thresholds, sds)
             records.append(record)
 
     else:
         n_valid, thresholds, sds = _calc_cg(f, df.smiles.tolist(), df.y.tolist())
-        record = CoarseGrainCalculationRecord(f.alias, dt_string, n_valid, thresholds, sds)
+        record = RogiRecord(f.alias, dt_string, n_valid, thresholds, sds)
         records = list(repeat(record, repeats))
 
     return records

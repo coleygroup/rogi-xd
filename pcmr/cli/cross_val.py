@@ -12,10 +12,10 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
 from sklearn.cross_decomposition import PLSRegression
 
-from pcmr.cli.rogi import RogiSubcommand
 from pcmr.data import data
-from pcmr.cli.utils.records import CrossValdiationResult, dataset_and_task
 from pcmr.featurizers.base import FeaturizerBase
+from pcmr.cli.rogi import RogiSubcommand
+from pcmr.cli.utils import CrossValdiationResult, dataset_and_task
 
 logger = logging.getLogger(__name__)
 
