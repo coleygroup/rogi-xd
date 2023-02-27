@@ -11,7 +11,7 @@ from torchdrug.data import constant
 from torchdrug.tasks import AttributeMasking
 from torchdrug.data import feature
 
-from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
+from ae_utils.utils.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.utils import Configurable
 
 DEFAULT_ATOM_DIM = sum(len(v) for v in [feature.atom_vocab, feature.chiral_tag_vocab]) + 1

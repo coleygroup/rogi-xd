@@ -10,7 +10,7 @@ import torch
 from torch import Tensor, optim, nn
 from torch.nn.utils import rnn
 
-from pcmr.models.mixins import LoggingMixin, SaveAndLoadMixin
+from ae_utils.utils.mixins import LoggingMixin, SaveAndLoadMixin
 from pcmr.models.vae.tokenizer import Tokenizer
 from pcmr.models.vae.modules import RnnEncoder, RnnDecoder
 from pcmr.models.vae.schedulers import (
