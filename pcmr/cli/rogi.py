@@ -27,7 +27,7 @@ from pcmr.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCro
 logger = logging.getLogger(__name__)
 
 SEED = 42
-SCORING = 'r2', 'neg_mean_squared_error', 'neg_mean_absolute_error'
+SCORING = ('r2', 'neg_mean_squared_error', 'neg_mean_absolute_error')
 MODELS = {
     'KNN': KNeighborsRegressor(), 
     'PLS': PLSRegression(), 
@@ -37,35 +37,13 @@ MODELS = {
 }
 
 
-def _calc_cv(
-    X: np.ndarray, y: np.ndarray, cv: KFold, name2model: dict = None
-) -> list[CrossValdiationResult]:
-    name2model = name2model or MODELS
-    records = []
-    
-    for name, model in name2model.items():
-        logger.info(f"  MODEL: {name}")
-        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1)
-        r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
-        r2 = r2.mean()
-        rmse = np.sqrt(-neg_mse).mean()
-        mae = -neg_mae.mean()
-        records.append(CrossValdiationResult(name, r2, rmse, mae))
-    
-    return records
-
-
-def calc(
+def _calc_rogi(
+    df: pd.DataFrame,
+    dt_string: str,
     f: FeaturizerBase,
-    dataset: str,
-    task: Optional[str],
     n: int,
-    repeats: int,
-    cv: Optional[KFold] = None
-) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
-    df = data.get_all_data(dataset, task)
-    dt_string = f"{dataset}/{task}" if task else dataset
-
+    repeats: Optional[int],
+) -> list[RogiRecord]:
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
 
@@ -75,37 +53,72 @@ def calc(
             X = f(df_sample.smiles.tolist())
             y = df_sample.y.values
             rr = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
-            if cv:
-                cvrs = _calc_cv(X, y, cv)
-                cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
-                records.extend(cv_recs)
-            else:
-                record = RogiRecord(f.alias, dt_string, rr)
-                records.append(record)
-                
+            record = RogiRecord(f.alias, dt_string, rr)
+            records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
         records = []
         for _ in range(repeats):
             X = f(df.smiles.tolist())
             rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
-            if cv:
-                cvrs = _calc_cv(X, y, cv)
-                cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
-                records.extend(cv_recs)
-            else:
-                record = RogiRecord(f.alias, dt_string, rr)
-                records.append(record)
-
+            records.append(RogiRecord(f.alias, dt_string, rr))
     else:
         X = f(df.smiles.tolist())
         rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
-        if cv:
-            cvrs = _calc_cv(X, y, cv)
-            cv_recs = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
-            records.extend(cv_recs)
-        else:
-            record = RogiRecord(f.alias, dt_string, rr)
-            records = [record for _ in range(repeats)]
+        record = RogiRecord(f.alias, dt_string, rr)
+        records = [record for _ in range(repeats)]
+
+    return records
+
+
+def _calc_cv(
+    df: pd.DataFrame,
+    dt_string: str,
+    f: FeaturizerBase,
+    n: int,
+    cv: Optional[KFold] = None,
+    name2model: Optional[dict] = None
+) -> list[RogiAndCrossValRecord]:
+    name2model = name2model or MODELS
+
+    if len(df) > n:
+        logger.info(f"Subsampling {n} rows from dataset (N={len(df)})")
+
+        df = df.sample(n)
+
+    X = f(df.smiles.tolist())
+    y = df.y.values
+
+    rr = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+    cvrs = []
+    for name, model in name2model.items():
+        logger.info(f"  MODEL: {name}")
+        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1)
+        r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
+        r2 = r2.mean()
+        rmse = np.sqrt(-neg_mse).mean()
+        mae = -neg_mae.mean()
+        cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
+
+    records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]  
+
+    return records
+
+
+def calc(
+    f: FeaturizerBase,
+    dataset: str,
+    task: Optional[str],
+    n: int,
+    repeats: Optional[int] = 5,
+    cv: Optional[KFold] = None
+) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
+    df = data.get_all_data(dataset, task)
+    dt_string = f"{dataset}/{task}" if task else dataset
+
+    if repeats is not None:
+        records = _calc_rogi(df, dt_string, f, n, repeats)
+    else:
+        records = _calc_cv(df, dt_string, f, n, cv)
 
     return records
 
@@ -160,7 +173,7 @@ class RogiSubcommand(Subcommand):
             help="the number of CPUs to parallelize data loading over, if possible.",
         )
         parser.add_argument("--coarse-grain", "--cg", action="store_true")
-        parser.add_argument("-k", "--num-folds", nargs="?", type=int, const=5)
+        parser.add_argument("-k", "--num-folds", "--cv", nargs="?", type=int, const=5)
 
         return parser
 
@@ -178,13 +191,14 @@ class RogiSubcommand(Subcommand):
         f = RogiSubcommand.build_featurizer(
             args.featurizer, args.batch_size, args.model_dir, args.num_workers
         )
+        cv = KFold(args.num_folds, shuffle=True, random_state=SEED) if args.num_folds else None
 
         records = []
         try:
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    records = calc(f, d, t, args.N, args.repeats)
+                    records = calc(f, d, t, args.N, args.repeats, cv)
                     records.extend(records)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
