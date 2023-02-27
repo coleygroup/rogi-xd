@@ -4,6 +4,7 @@ import json
 from os import PathLike
 from pathlib import Path
 from typing import Any, Mapping
+from typing_extensions import Self
 
 import torch
 
@@ -24,7 +25,7 @@ class SaveAndLoadMixin:
         p_config.write_text(json.dumps(self.to_config(), indent=2))
 
     @classmethod
-    def load(cls, save_dir: PathLike) -> object:
+    def load(cls, save_dir: PathLike) -> Self:
         save_dir = Path(save_dir)
         p_state_dict = save_dir / "model.pt"
         p_config = save_dir / "model.json"
