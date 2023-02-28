@@ -170,5 +170,8 @@ oracle
 .vscode
 *.pdf
 *.pt
+*.png
+*.tex
 chkpts/*
 models/*
+results/*
