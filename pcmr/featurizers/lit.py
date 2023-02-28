@@ -1,5 +1,5 @@
 import logging
-from typing import Iterable, Optional
+from typing import Iterable, Optional, TypeVar
 from typing_extensions import Self
 
 import numpy as np
@@ -13,11 +13,14 @@ from torchdrug.tasks import PropertyPrediction
 
 from ae_utils.char import LitCVAE, UnsupervisedDataset, SupervisedDataset
 from ae_utils.supervisors import RegressionSupervisor
+from ae_utils.utils.config import Configurable
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.featurizers.mixins import BatchSizeMixin
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
+
+ConfigurablePlModel = TypeVar("ConfigurablePlModel", pl.LightningModule, Configurable)
 
 
 class LitFeaturizerMixin(BatchSizeMixin):
@@ -25,16 +28,21 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
     def __init__(
         self,
-        model: pl.LightningModule,
+        model: ConfigurablePlModel,
         batch_size: Optional[int] = None,
         finetune_batch_size: Optional[int] = None,
         num_workers: int = 0,
+        reinit: bool = False,
         **kwargs,
     ):
+        if reinit:
+            model = model.from_config(model.to_config())
+
         self.model = model
         self.batch_size = batch_size
         self.finetune_batch_size = finetune_batch_size or 64
         self.num_workers = num_workers
+
 
     @torch.inference_mode()
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
@@ -72,16 +80,6 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
 @FeaturizerRegistry.register("gin")
 class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
-    # def __init__(
-    #     self,
-    #     model: LitAttrMaskGIN,
-    #     batch_size: Optional[int] = None,
-    #     finetune_batch_size: Optional[int] = None,
-    #     num_workers: int = 0,
-    #     **kwargs
-    # ):
-    #     super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
-
     def build_unsupervised_loader(self, smis):
         dataset = CustomDataset()
         dataset.load_smiles(smis, {}, atom_feature="pretrain", bond_feature="pretrain")
@@ -119,15 +117,6 @@ class GINFeaturizer(LitFeaturizerMixin, FeaturizerBase):
 
 @FeaturizerRegistry.register("vae")
 class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
-    # def __init__(
-    #     self,
-    #     model: LitVAE,
-    #     batch_size: Optional[int] = None,
-    #     finetune_batch_size: Optional[int] = None,
-    #     num_workers: int = 0, **kwargs
-    # ):
-    #     super().__init__(model, batch_size, finetune_batch_size, num_workers, **kwargs)
-
     def build_unsupervised_loader(self, smis):
         dset = UnsupervisedDataset(smis, self.model.tokenizer)
 

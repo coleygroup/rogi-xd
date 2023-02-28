@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 import selfies as sf
 import torch
-from transformers import pipeline
+from transformers import pipeline, AutoModel, AutoConfig
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.featurizers.mixins import BatchSizeMixin
@@ -20,16 +20,23 @@ class HuggingFaceFeaturizerMixin(BatchSizeMixin):
         self,
         batch_size: Optional[int] = None,
         device: Union[int, str, torch.device, None] = None,
+        reinit: bool = False,
         **kwargs,
     ):
         self.batch_size = batch_size
+        if reinit:
+            model = AutoModel.from_config(AutoConfig.from_pretrained(self.MODEL_ID))
+        else:
+            model = AutoModel.from_pretrained(self.MODEL_ID)
+
         self.fe = pipeline(
             "feature-extraction",
-            model=self.MODEL_ID,
+            model=model,
+            tokenizer=self.MODEL_ID,
             device=select_device(device),
             framework="pt",
             return_tensors=True,
-            **dict(truncation=True),
+            truncation=True,
         )
         self.fe.tokenizer.padding_size = "right"
 
