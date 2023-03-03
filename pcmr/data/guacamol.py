@@ -42,7 +42,7 @@ class GuacaMolDataModule(DataModule):
         return cls.__ORACLE_NAMES
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
+    def tasks(cls, dataset: str) -> set[str]:
         cls.check_dataset(dataset)
 
         return []

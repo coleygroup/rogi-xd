@@ -62,8 +62,9 @@ class ChemGPTFeaturizer(HuggingFaceFeaturizerMixin, FeaturizerBase):
     DEFAULT_BATCH_SIZE = 8
     CLASS_TOKEN_IDX = -1
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, batch_size: Optional[int] = None, device: Union[int, str, torch.device, None] = None, reinit: bool = False, **kwargs):
+        super().__init__(batch_size, device, reinit, **kwargs)
+
         self.fe.tokenizer.add_special_tokens({"pad_token": "[PAD]"})
         self.fe.tokenizer.padding_side = "left"
 

@@ -36,7 +36,7 @@ class DockstringDataModule(DataModule):
         return {"DOCKSTRING"}
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
+    def tasks(cls, dataset: str) -> set[str]:
         cls.check_dataset(dataset)
 
         return set(cls.__df)

@@ -29,7 +29,7 @@ class MoleculeNetDataModule(DataModule):
         return cls.__DATASETS
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
+    def tasks(cls, dataset: str) -> set[str]:
         return cls._get_full_dataset(dataset)[0]
 
     @classmethod

@@ -17,8 +17,8 @@ class ListSubcommand(Subcommand):
     @staticmethod
     def func(args: Namespace):
         for d in data.datasets:
-            ts = data.get_tasks(d)
-            if len(ts) > 1:
-                [print(f"{d}/{t}", file=args.output) for t in ts]
+            tasks = data.tasks(d)
+            if len(tasks) > 1:
+                [print(f"{d}/{t}", file=args.output) for t in tasks]
             else:
                 print(d, file=args.output)

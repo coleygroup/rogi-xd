@@ -31,7 +31,7 @@ class TdcDataModule(DataModule):
         return {*cls.__ADME_DATASETS, *cls.__TOX_DATASETS}
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> list[str]:
+    def tasks(cls, dataset: str) -> list[str]:
         cls.check_dataset(dataset)
         try:
             return retrieve_label_name_list(dataset)

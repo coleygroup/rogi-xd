@@ -17,7 +17,7 @@ class DataModule(ABC):
         logger.info(f"{cls.__name__} is not randomly generated! Nothing happened...")
 
     @classmethod
-    def get_data(
+    def get(
         cls, dataset: str, task: Optional[str] = None, n: int = 10000, seed: Optional[int] = None
     ) -> pd.DataFrame:
         """get `n` rows of data from the associated (dataset, task) pair
@@ -56,7 +56,7 @@ class DataModule(ABC):
 
     @classmethod
     @abstractmethod
-    def get_tasks(cls, dataset: str) -> Iterable[str]:
+    def tasks(cls, dataset: str) -> Iterable[str]:
         """The tasks associated with the given dataset, if any"""
 
     @classmethod
@@ -91,7 +91,7 @@ class DataModule(ABC):
 
     @classmethod
     def check_task(cls, dataset: str, task: Optional[str]):
-        tasks = cls.get_tasks(dataset)
+        tasks = cls.tasks(dataset)
         if task in tasks or (task is None and len(tasks) < 2):
             return
 

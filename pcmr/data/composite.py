@@ -23,8 +23,8 @@ class CompositeDataModule(DataModule):
         return cls.__dset2module.keys()
 
     @classmethod
-    def get_tasks(cls, dataset: str) -> set[str]:
-        return cls._get_module(dataset).get_tasks(dataset)
+    def tasks(cls, dataset: str) -> set[str]:
+        return cls._get_module(dataset).tasks(dataset)
 
     @classmethod
     def get_all_data(cls, dataset: str, task: Optional[str] = None) -> pd.DataFrame:
