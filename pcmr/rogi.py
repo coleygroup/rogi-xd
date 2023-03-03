@@ -13,7 +13,7 @@ from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
-from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult
+from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult, IntegrationDomain
 
 logger = logging.getLogger(__name__)
 
@@ -260,23 +260,26 @@ def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
     if (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside of [0, 1]")
 
-    clusters = fcluster(Z, t, "distance")
+    cluster_ids = fcluster(Z, t, "distance")
+    clusters = set(cluster_ids)
 
     means = []
     weights = []
-    for i in set(clusters):
-        mask = clusters == i
+    for i in clusters:
+        mask = cluster_ids == i
         means.append(y[mask].mean())
         weights.append(len(y[mask]))
 
     # max std dev is 0.5 --> multiply by 2 so that results is in [0,1]
     var = weighted_moment(means, n=2, weights=weights)
-    sd_normalized = 2 * var ** (1 / 2)
+    sd_normalized = 2 * np.sqrt(var)
 
-    return sd_normalized
+    return sd_normalized, len(clusters)
 
 
-def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.ndarray, np.ndarray]:
+def coarse_grain(
+    D: np.ndarray, y: np.ndarray, min_dt: float = 0.01
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     logger.debug("Clustering...")
     Z = max_linkage(D)
     all_distance_thresholds = Z[:, 2]
@@ -292,13 +295,14 @@ def coarse_grain(D: np.ndarray, y: np.ndarray, min_dt: float = 0) -> tuple[np.nd
         t_prev = t
 
     logger.debug(f"Coarsening with thresholds {flist(thresholds):0.3f}")
-    sds = [coarsened_sd(y, Z, t) for t in thresholds]
+    cg_sds, n_clusters = zip(*[coarsened_sd(y, Z, t) for t in thresholds])
 
     # when num_clusters == num_data ==> stddev/skewness of dataset
     thresholds = np.array([0.0, *thresholds, 1.0])
-    sds = np.array([coarsened_sd(y, Z, t=-0.1), *sds, coarsened_sd(y, Z, t=1.1)])
+    cg_sds = np.array([2 * y.std(), *cg_sds, 0])
+    n_clusters = np.array([len(y), *n_clusters, 1])
 
-    return thresholds, sds
+    return thresholds, cg_sds, n_clusters
 
 
 def rogi(
@@ -311,6 +315,7 @@ def rogi(
     fp_config: FingerprintConfig = FingerprintConfig(),
     max_dist: Optional[float] = None,
     min_dt: float = 0.01,
+    domain: IntegrationDomain = IntegrationDomain.LOG_CLUSTER_RATIO,
     nboots: int = 1,
 ) -> RogiResult:
     """calculate the ROGI of a dataset and (optionally) its uncertainty
@@ -345,6 +350,8 @@ def rogi(
         See :class:`~pcmr.utils.FingerprintConfig` for more details
     min_dt : float, default=0.01
         the mimimum distance to use between threshold values when coarse graining the dataset,
+    log_ratio : bool, default=True
+        TODO
     nboots : int, default=1
         the number of samples to use when calculating uncertainty via bootstrapping.
         If `nboots <= 1`, no bootstrapping will be performed
@@ -367,8 +374,15 @@ def rogi(
     if (n_invalid := len(y) - len(y_)) > 0:
         logger.info(f"Removed {n_invalid} input(s) with invalid features or scores")
 
-    thresholds, sds_cg = coarse_grain(D, y_, min_dt)
-    score: float = sds_cg[0] - trapezoid(sds_cg, thresholds)
+    thresholds, cg_sds, n_clusters = coarse_grain(D, y_, min_dt)
+    if domain == IntegrationDomain.THRESHOLD:
+        x = thresholds
+    elif domain == IntegrationDomain.CLUSTER_RATIO:
+        x = 1 - n_clusters / n_clusters[0]
+    else:
+        x = 1 - np.log(n_clusters) / np.log(n_clusters[0])
+
+    score: float = cg_sds[0] - trapezoid(cg_sds, x)
 
     if nboots > 1:
         logger.debug(f"Bootstrapping with {nboots} samples")
@@ -380,12 +394,18 @@ def rogi(
             idxs = np.random.choice(range(size), size, True)
             D = unsquareform(D_square[np.ix_(idxs, idxs)])
 
-            thresholds_, sds_cg_ = coarse_grain(D, y_, min_dt)
-            boot_score = sds_cg[0] - trapezoid(sds_cg_, thresholds_)
+            thresholds_, cg_sds_, n_clusters_ = coarse_grain(D, y_, min_dt)
+            if domain == IntegrationDomain.THRESHOLD:
+                x = thresholds_
+            elif domain == IntegrationDomain.CLUSTER_RATIO:
+                x = 1 - n_clusters_ / n_clusters_[0]
+            else:
+                x = 1 - np.log(n_clusters_) / np.log(n_clusters_[0])
+            boot_score = cg_sds[0] - trapezoid(cg_sds_, x)
             boot_scores.append(boot_score)
 
         uncertainty = np.std(boot_scores)
     else:
         uncertainty = None
 
-    return RogiResult(score, uncertainty, len(y_), thresholds, sds_cg)
+    return RogiResult(score, uncertainty, len(y_), thresholds, cg_sds, n_clusters)

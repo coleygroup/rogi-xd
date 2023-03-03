@@ -21,6 +21,12 @@ class Metric(AutoName):
     PRECOMPUTED = auto()
 
 
+class IntegrationDomain(AutoName):
+    THRESHOLD = auto()
+    CLUSTER_RATIO = auto()
+    LOG_CLUSTER_RATIO = auto()
+
+    
 class FingerprintConfig(NamedTuple):
     fp: Fingerprint = Fingerprint.MORGAN
     radius: int = 2
@@ -32,4 +38,5 @@ class RogiResult(NamedTuple):
     uncertainty: Optional[float]
     n_valid: int
     thresholds: np.ndarray
-    sds_cg: np.ndarray
+    cg_sds: np.ndarray
+    n_clusters: np.ndarray
