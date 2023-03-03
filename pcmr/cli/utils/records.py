@@ -5,6 +5,7 @@ import numpy as np
 
 from pcmr.utils.rogi import RogiResult
 
+
 @dataclass(frozen=True)
 class RogiRecord:
     features: str
@@ -14,7 +15,8 @@ class RogiRecord:
     rogi: float = field(init=False)
     n_valid: int = field(init=False)
     thresholds: np.ndarray = field(init=False)
-    sds_cg: np.ndarray = field(init=False)
+    cg_sds: np.ndarray = field(init=False)
+    n_clusters: np.ndarray = field(init=False)
 
     def __post_init__(self, rr: RogiResult):
         for k, v in rr._asdict().items():

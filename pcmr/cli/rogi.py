@@ -116,10 +116,10 @@ def calc(
     df = data.get_all_data(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
 
-    if repeats is not None:
-        records = _calc_rogi(df, dt_string, f, n, repeats)
-    else:
+    if cv is not None:
         records = _calc_cv(df, dt_string, f, n, cv)
+    else:
+        records = _calc_rogi(df, dt_string, f, n, repeats)
 
     return records
 
@@ -149,7 +149,7 @@ class RogiSubcommand(Subcommand):
         parser.add_argument(
             "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
-        parser.add_argument("-r", "--repeats", type=int)
+        parser.add_argument("-r", "--repeats", type=int, default=5)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
         parser.add_argument(
             "-o",

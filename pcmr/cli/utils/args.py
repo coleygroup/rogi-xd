@@ -6,6 +6,7 @@ from tdc.utils import fuzzy_search
 
 from pcmr.utils import AutoName
 
+
 class ModelType(AutoName):
     GIN = auto()
     VAE = auto()
@@ -31,6 +32,7 @@ def bounded(lo=None, hi=None):
         return wrapper
 
     return decorator
+
 
 def dataset_and_task(value: str) -> tuple[str, Optional[str]]:
     tokens = value.split("/")
