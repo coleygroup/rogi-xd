@@ -49,7 +49,7 @@ def _calc_rogi(
             df_sample = df.sample(n)
             X = f(df_sample.smiles.tolist())
             y = df_sample.y.values
-            rr = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+            rr = rogi(y, True, X, metric=f.metric, min_dt=0.01)
             record = RogiRecord(f.alias, dt_string, rr)
             records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically

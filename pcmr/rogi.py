@@ -14,32 +14,33 @@ from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
 from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult, IntegrationDomain
+from pcmr.utils.rogi import InputType
+
+Input = Union[np.ndarray, Sequence[ExplicitBitVect], Sequence[str]]
 
 logger = logging.getLogger(__name__)
 
 
-def mask_inputs(
-    y: np.ndarray,
-    X: Optional[np.ndarray],
-    fps: Optional[list[ExplicitBitVect]],
-    smis: Optional[Iterable[str]],
-):
+def mask_inputs(xs: Input, y: np.ndarray):
     y_mask = np.isfinite(y)
 
-    if X is not None:
-        x_mask = np.isfinite(X).all(1)
+    if isinstance(xs, np.ndarray):
+        x_mask = np.isfinite(xs).all(1)
         mask = y_mask & x_mask
-        X = X[mask]
-    elif fps is not None:
-        x_mask = np.ones(len(fps), bool)
+        xs = xs[mask]
+    elif isinstance(xs, Sequence) and isinstance(xs[0], ExplicitBitVect):
+        mask = y_mask
+        xs = [fp for fp, m in zip(xs, mask) if m]
+    elif isinstance(xs, Sequence) and isinstance(xs[0], str):
+        x_mask = np.array([Chem.MolFromSmiles(smi) is not None for smi in xs], bool)
         mask = y_mask & x_mask
-        fps = [fp for fp, m in zip(fps, mask) if m]
-    elif smis is not None:
-        x_mask = np.array([Chem.MolFromSmiles(smi) is not None for smi in smis], bool)
-        mask = y_mask & x_mask
-        smis = [smi for smi, m in zip(smis, mask) if m]
-
-    return y[mask], X, fps, smis
+        xs = [smi for smi, m in zip(xs, mask) if m]
+    else:
+        raise TypeError(
+            "arg 'xs' must be of type `np.ndarray` | `Sequence[ExplicitBitVect]` | Sequence[str]!"
+        )
+    
+    return xs, y[mask]
 
 
 def unsquareform(A: np.ndarray) -> np.ndarray:
@@ -70,7 +71,7 @@ def estimate_max_dist(X: np.ndarray, metric: Metric) -> float:
     return d_max
 
 
-def calc_distance_matrix_X(
+def calc_distance_matrix_ndarray(
     X: np.ndarray, metric: Metric, d_max: Optional[float] = None
 ) -> np.ndarray:
     """Calculate the distance matrix of the input array X
@@ -161,50 +162,49 @@ def validate_and_canonicalize_smis(smis: Iterable[str]) -> list[str]:
 
 
 def calc_distance_matrix(
-    X: Optional[np.ndarray],
-    fps: Optional[list[ExplicitBitVect]],
-    smis: Optional[Iterable[str]],
+    xs: Input,
     metric: Union[str, Metric, None],
     fp_config: FingerprintConfig = FingerprintConfig(),
     max_dist: Optional[float] = None,
 ):
     """Calculate the distance matrix of the input molecules
 
-    NOTE: see :func:`~pcmr.rogi.rogi` for details on the following arguments: `X`,
-    `fps`, `smis`, `metric`, `fp_config`, and `max_dist`
+    NOTE: see :func:`~pcmr.rogi.rogi` for details on the following arguments: `xs`, `metric`,
+    fp_config`, and `max_dist`
 
     Parameters
     ----------
-    X : Optional[np.ndarray], default=None
-    fps : Optional[list[ExplicitBitVect]], default=None
-    smis : Optional[Iterable[str]], default=None
+    xs: Input
     metric : Union[str, Metric, None], default=None
     fp_config: FingerprintConfig, default=FingerprintConfig()
+    max_dist: Optional[float] = None
 
     Returns
     -------
     np.ndarray
         the upper triangular of the distance matrix as a 1-d vector
     """
-    if X is not None:
+    if isinstance(xs, np.ndarray):
         metric = Metric.get(metric) if metric is not None else Metric.EUCLIDEAN
-        D = calc_distance_matrix_X(X, metric, max_dist)
-    elif fps is not None:
+        D = calc_distance_matrix_ndarray(xs, metric, max_dist)
+    elif isinstance(xs, Sequence) and isinstance(xs[0], ExplicitBitVect):
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
-        D = calc_distance_matrix_fps(fps, metric)
-    elif smis is not None:
-        smis = validate_and_canonicalize_smis(smis)
+        D = calc_distance_matrix_fps(xs, metric)
+    elif isinstance(xs, Sequence) and isinstance(xs[0], str):
+        smis = validate_and_canonicalize_smis(xs)
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
         fps = calc_fps(mols, **fp_config._asdict())
         metric = Metric.get(metric) if metric is not None else Metric.TANIMOTO
         D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
     else:
-        raise ValueError("args 'X', 'fps', and 'smis' were all `None`!")
+        raise TypeError(
+            "arg 'xs' must be of type `np.ndarray` | `Sequence[ExplicitBitVect]` | Sequence[str]!"
+        )
 
     return D
 
 
-def weighted_moment(
+def nmoment(
     x: ArrayLike, center: Optional[float] = None, n: int = 2, weights: Optional[ArrayLike] = None
 ) -> float:
     """calculate the n-th moment with given sample weights
@@ -226,7 +226,7 @@ def weighted_moment(
         the n-th moment
     """
     x = np.array(x)
-    center = center or np.average(x, weights=weights)
+    center = center if center is not None else np.average(x, weights=weights)
 
     return np.average((x - center) ** n, weights=weights)
 
@@ -271,7 +271,7 @@ def coarsened_sd(y: np.ndarray, Z: np.ndarray, t: float) -> float:
         weights.append(len(y[mask]))
 
     # max std dev is 0.5 --> multiply by 2 so that results is in [0,1]
-    var = weighted_moment(means, n=2, weights=weights)
+    var = nmoment(means, n=2, weights=weights)
     sd_normalized = 2 * np.sqrt(var)
 
     return sd_normalized, len(clusters)
@@ -306,11 +306,9 @@ def coarse_grain(
 
 
 def rogi(
+    xs: Input,
     y: ArrayLike,
     normalize: bool = True,
-    X: Optional[np.ndarray] = None,
-    fps: Optional[Iterable[ExplicitBitVect]] = None,
-    smis: Optional[Iterable[str]] = None,
     metric: Union[str, Metric, None] = None,
     fp_config: FingerprintConfig = FingerprintConfig(),
     max_dist: Optional[float] = None,
@@ -324,26 +322,24 @@ def rogi(
 
     Parameters
     ----------
+    xs: Union[np.ndarray, Sequence[ExplicitBitVect], Sequence[str]]
+        the input molecules as one of the following types:
+        
+        * `np.ndarray`: Either (a) the precalculated input representations as a rank-2 matrix OR (b) the precalculated distance matrix (if using Metric.PRECOMPUTED) as a rank-1 (dense) or rank-2 (square) matrix
+        * `Sequence[ExplicitBitVect]`: the precalculated input fingerprints as rdkit :class:`ExplicitBitVect`s. 
+        * `Sequence[str]`: the SMILES strings of the input molecules
+
     y : ArrayLike
         the property values
     normalize : bool, default=True
         whether to normalize the property values to the range [0, 1],
-    X : Optional[np.ndarray], default=None
-        Either (a) the precalculated input representations as a rank-2 matrix OR (b) the
-        precalculated distance matrix (if using Metric.PRECOMPUTED) as a rank-1 (dense) or rank-2
-        (square) matrix. NOTE: takes precedence over `fps` and `smis` if supplied.
-    fps : Optional[list[ExplicitBitVect]], default=None
-        the precalculated input fingerprints as rdkit :class:`ExplicitBitVect`s. NOTE: takes
-        precedence over and `smis` if supplied.
-    smis : Optional[Iterable[str]], default=None
-        the SMILES strings of the input molecules
     metric : Union[str, Metric, None], default=None
         the distance metric to use or its string alias. If `None`, will choose an appropriate
         distance metric based on the representation supplied:
 
-            1) `X`: `Metric.EUCLIDEAN`
-            2) `fps`: `Metric.TANIMOTO`
-            3) `smis`: `Metric.TANIMOTO`
+            1) `np.ndarray`: `Metric.EUCLIDEAN`
+            2) `Sequence[ExplicitBitVect]`: `Metric.TANIMOTO`
+            3) `Sequence[str]`: `Metric.TANIMOTO`
 
     fp_config: FingerprintConfig, default=FingerprintConfig()
         the config to use for calculating fingerprints of the input SMILES strings, if necessary.
@@ -368,8 +364,8 @@ def rogi(
     elif (y < 0).any() or (y > 1).any():
         warnings.warn("Input array 'y' has values outside [0, 1]. ROGI may be outside [0, 1]!")
 
-    y_, X, fps, smis = mask_inputs(y, X, fps, smis)
-    D = calc_distance_matrix(X, fps, smis, metric, fp_config, max_dist)
+    xs, y_ = mask_inputs(xs, y)
+    D = calc_distance_matrix(xs, metric, fp_config, max_dist)
 
     if (n_invalid := len(y) - len(y_)) > 0:
         logger.info(f"Removed {n_invalid} input(s) with invalid features or scores")

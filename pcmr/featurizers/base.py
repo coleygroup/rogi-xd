@@ -6,11 +6,15 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 from pcmr.utils import ClassRegistry
+from pcmr.utils.rogi import Metric
 
 FeaturizerRegistry = ClassRegistry()
 
 
 class FeaturizerBase(ABC):
+    metric = Metric.EUCLIDEAN
+    """the distance metric to use with this featurizer"""
+
     def __init__(self, *args, **kwargs):
         pass
 
