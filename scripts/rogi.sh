@@ -5,7 +5,7 @@ N=${3:-10000}
 repeats=${4:-5}
 
 if [ -z "$featurizers" ]; then
-    featurizers=( descriptor chemberta chemgpt GIN VAE )
+    featurizers=( descriptor VAE GIN chemberta chemgpt )
 else
     featurizers=( $featurizers )
 fi

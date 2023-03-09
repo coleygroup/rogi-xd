@@ -45,4 +45,3 @@ class RogiAndCrossValRecord(RogiRecord):
         super().__post_init__(rr)
         for k, v in cvr._asdict().items():
             object.__setattr__(self, k, v)
-

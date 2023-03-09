@@ -43,7 +43,6 @@ class LitFeaturizerMixin(BatchSizeMixin):
         self.finetune_batch_size = finetune_batch_size or 64
         self.num_workers = num_workers
 
-
     @torch.inference_mode()
     def __call__(self, smis: Iterable[str], quiet: bool = False) -> np.ndarray:
         dataloader = self.build_unsupervised_loader(smis)
@@ -55,7 +54,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
             accelerator="gpu" if gpus else "cpu",
             devices=gpus or 1,
             enable_model_summary=False,
-            enable_progress_bar=not quiet
+            enable_progress_bar=not quiet,
         )
         Xs = trainer.predict(self.model, dataloader)
 

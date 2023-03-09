@@ -18,7 +18,11 @@ class DataModule(ABC):
 
     @classmethod
     def get(
-        cls, dataset: str, task: Optional[str] = None, n: Optional[int] = None, seed: Optional[int] = None
+        cls,
+        dataset: str,
+        task: Optional[str] = None,
+        n: Optional[int] = None,
+        seed: Optional[int] = None,
     ) -> pd.DataFrame:
         """get `n` rows of data from the associated (dataset, task) pair
 

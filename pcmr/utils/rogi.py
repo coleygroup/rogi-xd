@@ -26,7 +26,7 @@ class IntegrationDomain(AutoName):
     CLUSTER_RATIO = auto()
     LOG_CLUSTER_RATIO = auto()
 
-    
+
 class FingerprintConfig(NamedTuple):
     fp: Fingerprint = Fingerprint.MORGAN
     radius: int = 2

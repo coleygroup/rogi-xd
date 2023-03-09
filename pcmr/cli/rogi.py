@@ -27,23 +27,19 @@ from pcmr.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCro
 logger = logging.getLogger(__name__)
 
 SEED = 42
-SCORING = ('r2', 'neg_mean_squared_error', 'neg_mean_absolute_error')
+SCORING = ("r2", "neg_mean_squared_error", "neg_mean_absolute_error")
 MODELS = {
-    'KNN': KNeighborsRegressor(), 
-    'PLS': PLSRegression(), 
-    'RF': RandomForestRegressor(n_estimators=50, n_jobs=-1, random_state=SEED), 
-    'SVR': SVR(), 
-    'MLP': MLPRegressor(random_state=SEED)
+    "KNN": KNeighborsRegressor(),
+    "PLS": PLSRegression(),
+    "RF": RandomForestRegressor(n_estimators=50, n_jobs=-1, random_state=SEED),
+    "SVR": SVR(),
+    "MLP": MLPRegressor(random_state=SEED),
 }
 N_JOBS = 8
 
 
 def _calc_rogi(
-    df: pd.DataFrame,
-    dt_string: str,
-    f: FeaturizerBase,
-    n: int,
-    repeats: Optional[int],
+    df: pd.DataFrame, dt_string: str, f: FeaturizerBase, n: int, repeats: Optional[int]
 ) -> list[RogiRecord]:
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
@@ -77,7 +73,7 @@ def _calc_cv(
     f: FeaturizerBase,
     n: int,
     cv: Optional[KFold] = None,
-    name2model: Optional[dict] = None
+    name2model: Optional[dict] = None,
 ) -> list[RogiAndCrossValRecord]:
     name2model = name2model or MODELS
 
@@ -100,7 +96,7 @@ def _calc_cv(
         mae = -neg_mae.mean()
         cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
 
-    records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]  
+    records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
 
     return records
 
@@ -111,7 +107,7 @@ def calc(
     task: Optional[str],
     n: int,
     repeats: Optional[int] = 5,
-    cv: Optional[KFold] = None
+    cv: Optional[KFold] = None,
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
@@ -173,9 +169,26 @@ class RogiSubcommand(Subcommand):
             default=0,
             help="the number of CPUs to parallelize data loading over, if possible",
         )
-        parser.add_argument("--coarse-grain", "--cg", action="store_true", help="whether to store the raw coarse-graining results.")
-        parser.add_argument("-k", "--num-folds", "--cv", nargs="?", type=int, const=5, help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified")
-        parser.add_argument("--reinit", action="store_true", help="randomize the weights of a pretrained model before using it")
+        parser.add_argument(
+            "--coarse-grain",
+            "--cg",
+            action="store_true",
+            help="whether to store the raw coarse-graining results.",
+        )
+        parser.add_argument(
+            "-k",
+            "--num-folds",
+            "--cv",
+            nargs="?",
+            type=int,
+            const=5,
+            help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified",
+        )
+        parser.add_argument(
+            "--reinit",
+            action="store_true",
+            help="randomize the weights of a pretrained model before using it",
+        )
 
         return parser
 
