@@ -34,20 +34,6 @@ class AutoName(Enum):
         return [e.value for e in cls]
 
 
-# @dataclass
-# class Factory:
-#     registry: ClassRegistry
-
-#     def to_config(self, obj: Configurable):
-#         return {"alias": obj.alias, "config": obj.to_config()}
-
-#     def from_config(self, config):
-#         alias = config["v_reg"]["alias"]
-#         cls_config = config["v_reg"]["config"]
-
-#         return self.registry[alias].from_config(cls_config)
-
-
 class flist(list):
     def __format__(self, format_spec):
         fmt = lambda xs: ", ".join(f"{x:{format_spec}}" for x in xs)  # noqa: E731

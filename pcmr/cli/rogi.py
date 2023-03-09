@@ -155,7 +155,7 @@ class RogiSubcommand(Subcommand):
             "-o",
             "--output",
             type=Path,
-            help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZER.csv'",
+            help="the to which results should be written. If unspecified, will write to 'results/raw/rogi/FEATURIZER.{csv,json}', depending on the output data ('.json' if '--cg' is present, '.csv' otherwise)",
         )
         parser.add_argument(
             "-b",
@@ -171,11 +171,11 @@ class RogiSubcommand(Subcommand):
             "--num-workers",
             type=int,
             default=0,
-            help="the number of CPUs to parallelize data loading over, if possible.",
+            help="the number of CPUs to parallelize data loading over, if possible",
         )
-        parser.add_argument("--reinit", action="store_true")
-        parser.add_argument("--coarse-grain", "--cg", action="store_true")
-        parser.add_argument("-k", "--num-folds", "--cv", nargs="?", type=int, const=5)
+        parser.add_argument("--coarse-grain", "--cg", action="store_true", help="whether to store the raw coarse-graining results.")
+        parser.add_argument("-k", "--num-folds", "--cv", nargs="?", type=int, const=5, help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified")
+        parser.add_argument("--reinit", action="store_true", help="randomize the weights of a pretrained model before using it")
 
         return parser
 
@@ -208,7 +208,7 @@ class RogiSubcommand(Subcommand):
         finally:
             df = pd.DataFrame(records)
             if not args.coarse_grain:
-                df = df.drop(["thresholds", "sds_cg"], axis=1)
+                df = df.drop(["thresholds", "cg_sds", "n_clusters"], axis=1)
             print(df)
 
             if args.coarse_grain:

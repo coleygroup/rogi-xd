@@ -106,9 +106,10 @@ _Note_: The scripts rely datasets from both TDC [[1],[2]]. The script will first
 
 ## Figures
 
-See [`notebooks`](./notebooks) folder:
+See the corresponding notebook:
 - [`auc.ipynb`](./notebooks/corrleation.ipynb): loss of dispersion plots
 - [`corrleation.ipynb`](./notebooks/corrleation.ipynb): correlation plots and `$r` distribution plots
 - [`rogi-dist.ipynb`](./notebooks/rogi-dist.ipynb): ROGI distribution boxplots and parity plots
 - [`toy_surfaces.ipynb`](./notebooks/toy_surfaces.ipynb): toy example figures
 
+_Note_: for these notebooks to work out of the box, data should be generated and organized using the shell scripts above
