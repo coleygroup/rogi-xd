@@ -113,7 +113,7 @@ def calc(
     repeats: Optional[int] = 5,
     cv: Optional[KFold] = None
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
-    df = data.get_all_data(dataset, task)
+    df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
 
     if cv is not None:

@@ -18,7 +18,7 @@ class DataModule(ABC):
 
     @classmethod
     def get(
-        cls, dataset: str, task: Optional[str] = None, n: int = 10000, seed: Optional[int] = None
+        cls, dataset: str, task: Optional[str] = None, n: Optional[int] = None, seed: Optional[int] = None
     ) -> pd.DataFrame:
         """get `n` rows of data from the associated (dataset, task) pair
 
@@ -28,9 +28,9 @@ class DataModule(ABC):
             the parent dataset to get
         task : Optional[str], default=None
             the specific task to retrieve data for. If None,
-        n : int, default=10000
-            the maximum amount of datapoints to return. If `n` is larger than the full dataset,
-            return the full dataset. Otherwise, randomly subsample the dataset
+        n : int | None, default=None
+            the maximum amount of datapoints to return. If `n` is `None` or larger than the full
+            dataset, return the full dataset. Otherwise, randomly subsample the dataset
         seed : Optional[int], default=None
             the random seed to use when subsampling the data (if necessary).
 
@@ -42,7 +42,7 @@ class DataModule(ABC):
         """
         df = cls.get_all_data(dataset, task)
 
-        if len(df) > n:
+        if n is not None and len(df) > n:
             logger.info(f"Subsampling {n} rows from dataframe with {len(df)} rows")
             return df.sample(n, random_state=seed)
 

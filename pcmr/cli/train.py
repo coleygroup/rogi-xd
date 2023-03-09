@@ -22,7 +22,7 @@ from ae_utils.char import (
     Tokenizer,
     UnsupervisedDataset,
     CachedUnsupervisedDataset,
-    SupervisedDataset,
+    SemisupervisedDataset,
 )
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 
@@ -195,7 +195,7 @@ class TrainSubcommand(Subcommand):
         cache = num_workers == -1
         dset_cls = CachedUnsupervisedDataset if cache else UnsupervisedDataset
         dset = dset_cls(smis, tokenizer)
-        dset = SupervisedDataset(dset, None)
+        dset = SemisupervisedDataset(dset, None)
 
         n_train = int(0.8 * len(dset))
         n_val = len(dset) - n_train

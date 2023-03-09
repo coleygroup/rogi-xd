@@ -11,7 +11,7 @@ import torchdrug.data
 from torchdrug.layers import MLP
 from torchdrug.tasks import PropertyPrediction
 
-from ae_utils.char import LitCVAE, UnsupervisedDataset, SupervisedDataset
+from ae_utils.char import LitCVAE, UnsupervisedDataset, SemisupervisedDataset
 from ae_utils.supervisors import RegressionSupervisor
 from ae_utils.utils.config import Configurable
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
@@ -45,7 +45,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
 
 
     @torch.inference_mode()
-    def __call__(self, smis: Iterable[str]) -> np.ndarray:
+    def __call__(self, smis: Iterable[str], quiet: bool = False) -> np.ndarray:
         dataloader = self.build_unsupervised_loader(smis)
 
         gpus = 1 if torch.cuda.is_available() else 0
@@ -55,6 +55,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
             accelerator="gpu" if gpus else "cpu",
             devices=gpus or 1,
             enable_model_summary=False,
+            enable_progress_bar=not quiet
         )
         Xs = trainer.predict(self.model, dataloader)
 
@@ -133,14 +134,14 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
         if len(splits) == 1:
             smis, Y = splits[0]
             dset = UnsupervisedDataset(smis, self.model.tokenizer)
-            dset = SupervisedDataset(dset, Y)
+            dset = SemisupervisedDataset(dset, Y)
             train, val, _ = torch.utils.data.random_split(dset, [0.8, 0.1, 0.1])
         elif 2 <= len(splits) <= 3:
             (smis_train, y_train), (smis_val, y_val), *_ = splits
             train = UnsupervisedDataset(smis_train, self.model.tokenizer)
-            train = SupervisedDataset(train, y_train)
+            train = SemisupervisedDataset(train, y_train)
             val = UnsupervisedDataset(smis_val, self.model.tokenizer)
-            val = SupervisedDataset(val, y_val)
+            val = SemisupervisedDataset(val, y_val)
         else:
             raise ValueError
 
@@ -148,13 +149,13 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
             train,
             self.finetune_batch_size,
             num_workers=self.num_workers,
-            collate_fn=SupervisedDataset.collate_fn,
+            collate_fn=SemisupervisedDataset.collate_fn,
         )
         val_loader = torch.utils.data.DataLoader(
             val,
             self.finetune_batch_size,
             num_workers=self.num_workers,
-            collate_fn=SupervisedDataset.collate_fn,
+            collate_fn=SemisupervisedDataset.collate_fn,
         )
 
         return train_loader, val_loader

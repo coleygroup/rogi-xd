@@ -7,8 +7,6 @@ from pcmr.cli.finetune import FinetuneSubcommand
 from pcmr.cli.list import ListSubcommand
 from pcmr.cli.rogi import RogiSubcommand
 from pcmr.cli.train import TrainSubcommand
-from pcmr.cli.coarse_grain import CoarseGrainSubcommand
-from pcmr.cli.cross_val import CrossValidateSubcommand
 from pcmr.cli.utils import NOW, pop_attr
 
 logger = logging.getLogger(__name__)
