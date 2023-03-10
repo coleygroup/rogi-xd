@@ -1,7 +1,10 @@
 from typing import Iterable
+from typing_extensions import Self
 
-from rdkit import Chem
+from numpy.typing import ArrayLike
+from rdkit.Chem import AllChem as Chem
 from rdkit.DataStructs import ExplicitBitVect
+from tqdm import tqdm
 
 from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
 from pcmr.utils.rogi import Metric
@@ -14,10 +17,14 @@ class MorganFeauturizer(FeaturizerBase):
     def __init__(self, radius: int = 2, length: int = 512, **kwargs):
         self.radius = radius
         self.length = length
+        self.quiet = False
 
     def __call__(self, smis: Iterable[str]) -> list[ExplicitBitVect]:
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
         return [
             Chem.GetMorganFingerprintAsBitVect(m, radius=self.radius, nBits=self.length)
-            for m in mols
+            for m in tqdm(mols, "Featurizing", leave=False, disable=self.quiet)
         ]
+
+    def finetune(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]) -> Self:
+        return self

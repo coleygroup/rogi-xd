@@ -14,7 +14,6 @@ from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
 from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult, IntegrationDomain
-from pcmr.utils.rogi import InputType
 
 Input = Union[np.ndarray, Sequence[ExplicitBitVect], Sequence[str]]
 
@@ -198,7 +197,7 @@ def calc_distance_matrix(
         D = calc_distance_matrix_fps(fps, Metric.TANIMOTO)
     else:
         raise TypeError(
-            "arg 'xs' must be of type `np.ndarray` | `Sequence[ExplicitBitVect]` | Sequence[str]!"
+            "arg 'xs' must be of type `np.ndarray` | `Sequence[ExplicitBitVect]` | `Sequence[str]!`"
         )
 
     return D

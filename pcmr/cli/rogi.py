@@ -47,20 +47,20 @@ def _calc_rogi(
         records = []
         for _ in range(repeats):
             df_sample = df.sample(n)
-            X = f(df_sample.smiles.tolist())
+            xs = f(df_sample.smiles.tolist())
             y = df_sample.y.values
-            rr = rogi(y, True, X, metric=f.metric, min_dt=0.01)
+            rr = rogi(xs, y, metric=f.metric, min_dt=0.01)
             record = RogiRecord(f.alias, dt_string, rr)
             records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
         records = []
         for _ in range(repeats):
-            X = f(df.smiles.tolist())
-            rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+            xs = f(df.smiles.tolist())
+            rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01)
             records.append(RogiRecord(f.alias, dt_string, rr))
     else:
-        X = f(df.smiles.tolist())
-        rr = rogi(df.y.values, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+        xs = f(df.smiles.tolist())
+        rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01)
         record = RogiRecord(f.alias, dt_string, rr)
         records = [record for _ in range(repeats)]
 
@@ -82,10 +82,10 @@ def _calc_cv(
 
         df = df.sample(n)
 
-    X = f(df.smiles.tolist())
+    xs = f(df.smiles.tolist())
     y = df.y.values
-
-    rr = rogi(y, True, X, metric=Metric.EUCLIDEAN, min_dt=0.01)
+    X = xs if isinstance(xs, np.ndarray) else np.array(xs)
+    
     cvrs = []
     for name, model in name2model.items():
         logger.info(f"  MODEL: {name}")
@@ -96,6 +96,7 @@ def _calc_cv(
         mae = -neg_mae.mean()
         cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
 
+    rr = rogi(xs, y, metric=f.metric, min_dt=0.01)
     records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
 
     return records

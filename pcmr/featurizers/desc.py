@@ -37,6 +37,7 @@ class DescriptorFeauturizer(FeaturizerBase):
     def __init__(self, descs: Optional[Iterable[str]] = None, scale: bool = True, **kwargs):
         self.descs = set(descs or DEFAULT_DESCRIPTORS)
         self.scale = scale
+        self.quiet = False
 
         super().__init__(**kwargs)
 
@@ -65,7 +66,10 @@ class DescriptorFeauturizer(FeaturizerBase):
 
     def __call__(self, smis):
         mols = [Chem.MolFromSmiles(smi) for smi in smis]
-        xss = [[func(mol) for func in self.__funcs] for mol in tqdm(mols, leave=False)]
+        xss = [
+            [func(mol) for func in self.__funcs]
+            for mol in tqdm(mols, leave=False, disable=self.quiet)
+        ]
         X = np.array(xss)
 
         return MinMaxScaler().fit_transform(X) if self.scale else X
