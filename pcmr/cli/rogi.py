@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
@@ -91,13 +91,13 @@ def _calc_cv(
     y = df.y.values
 
     X = xs if isinstance(xs, np.ndarray) else np.array(xs)
-    y_scaled = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
-    
+    y_normed = StandardScaler().fit_transform(y.reshape(-1, 1))[:, 0]
+
     cvrs = []
     for name, model in name2model.items():
         logger.info(f"  MODEL: {name}")
         scores = cross_validate(
-            model, X, y_scaled, cv=cv, scoring=SCORING, verbose=1, n_jobs=N_JOBS
+            model, X, y_normed, cv=cv, scoring=SCORING, verbose=1, n_jobs=N_JOBS
         )
         r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
         r2 = r2.mean()
@@ -105,7 +105,7 @@ def _calc_cv(
         mae = -neg_mae.mean()
         cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
 
-    rr = rogi(xs, y_scaled, False, metric=f.metric, min_dt=0.01, domain=domain)
+    rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
     records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
 
     return records
