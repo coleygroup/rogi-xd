@@ -38,7 +38,7 @@ def mask_inputs(xs: Input, y: np.ndarray):
         raise TypeError(
             "arg 'xs' must be of type `np.ndarray` | `Sequence[ExplicitBitVect]` | Sequence[str]!"
         )
-    
+
     return xs, y[mask]
 
 
@@ -323,9 +323,9 @@ def rogi(
     ----------
     xs: Union[np.ndarray, Sequence[ExplicitBitVect], Sequence[str]]
         the input molecules as one of the following types:
-        
+
         * `np.ndarray`: Either (a) the precalculated input representations as a rank-2 matrix OR (b) the precalculated distance matrix (if using Metric.PRECOMPUTED) as a rank-1 (dense) or rank-2 (square) matrix
-        * `Sequence[ExplicitBitVect]`: the precalculated input fingerprints as rdkit :class:`ExplicitBitVect`s. 
+        * `Sequence[ExplicitBitVect]`: the precalculated input fingerprints as rdkit :class:`ExplicitBitVect`s.
         * `Sequence[str]`: the SMILES strings of the input molecules
 
     y : ArrayLike

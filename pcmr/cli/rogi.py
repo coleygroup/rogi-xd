@@ -40,7 +40,12 @@ N_JOBS = 8
 
 
 def _calc_rogi(
-    df: pd.DataFrame, dt_string: str, f: FeaturizerBase, n: int, repeats: Optional[int], v1: bool = False
+    df: pd.DataFrame,
+    dt_string: str,
+    f: FeaturizerBase,
+    n: int,
+    repeats: Optional[int],
+    v1: bool = False,
 ) -> list[RogiRecord]:
     domain = IntegrationDomain.THRESHOLD if v1 else IntegrationDomain.LOG_CLUSTER_RATIO
 
@@ -118,7 +123,7 @@ def calc(
     n: int,
     repeats: Optional[int] = 5,
     cv: Optional[KFold] = None,
-    v1: bool = False
+    v1: bool = False,
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
@@ -200,7 +205,10 @@ class RogiSubcommand(Subcommand):
             action="store_true",
             help="randomize the weights of a pretrained model before using it",
         )
-        parser.add_argument("--v1", action="store_true", help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)"
+        parser.add_argument(
+            "--v1",
+            action="store_true",
+            help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)",
         )
 
         return parser

@@ -42,7 +42,7 @@ class HuggingFaceFeaturizerMixin(BatchSizeMixin):
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         Hs = [H[0, self.CLASS_TOKEN_IDX, :] for H in self.fe(smis, batch_size=self.batch_size)]
-        
+
         return torch.stack(Hs).numpy().astype(float)
 
     def finetune(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]) -> Self:
