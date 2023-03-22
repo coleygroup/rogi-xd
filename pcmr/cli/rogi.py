@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
@@ -18,11 +19,11 @@ from pcmr.data import data
 from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry, VAEFeaturizer
 from pcmr.models.gin import LitAttrMaskGIN
 from pcmr.rogi import rogi
-from pcmr.utils import Metric
 
 from pcmr.cli.utils.args import dataset_and_task
 from pcmr.cli.utils.command import Subcommand
 from pcmr.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCrossValRecord
+from pcmr.utils.rogi import IntegrationDomain
 
 logger = logging.getLogger(__name__)
 
@@ -39,8 +40,10 @@ N_JOBS = 8
 
 
 def _calc_rogi(
-    df: pd.DataFrame, dt_string: str, f: FeaturizerBase, n: int, repeats: Optional[int]
+    df: pd.DataFrame, dt_string: str, f: FeaturizerBase, n: int, repeats: Optional[int], v1: bool = False
 ) -> list[RogiRecord]:
+    domain = IntegrationDomain.THRESHOLD if v1 else IntegrationDomain.LOG_CLUSTER_RATIO
+
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
 
@@ -49,18 +52,18 @@ def _calc_rogi(
             df_sample = df.sample(n)
             xs = f(df_sample.smiles.tolist())
             y = df_sample.y.values
-            rr = rogi(xs, y, metric=f.metric, min_dt=0.01)
+            rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
             record = RogiRecord(f.alias, dt_string, rr)
             records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
         records = []
         for _ in range(repeats):
             xs = f(df.smiles.tolist())
-            rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01)
+            rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
             records.append(RogiRecord(f.alias, dt_string, rr))
     else:
         xs = f(df.smiles.tolist())
-        rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01)
+        rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
         record = RogiRecord(f.alias, dt_string, rr)
         records = [record for _ in range(repeats)]
 
@@ -73,8 +76,10 @@ def _calc_cv(
     f: FeaturizerBase,
     n: int,
     cv: Optional[KFold] = None,
+    v1: bool = False,
     name2model: Optional[dict] = None,
 ) -> list[RogiAndCrossValRecord]:
+    domain = IntegrationDomain.THRESHOLD if v1 else IntegrationDomain.LOG_CLUSTER_RATIO
     name2model = name2model or MODELS
 
     if len(df) > n:
@@ -84,19 +89,23 @@ def _calc_cv(
 
     xs = f(df.smiles.tolist())
     y = df.y.values
+
     X = xs if isinstance(xs, np.ndarray) else np.array(xs)
+    y_scaled = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
     
     cvrs = []
     for name, model in name2model.items():
         logger.info(f"  MODEL: {name}")
-        scores = cross_validate(model, X, y, cv=cv, scoring=SCORING, verbose=1, n_jobs=N_JOBS)
+        scores = cross_validate(
+            model, X, y_scaled, cv=cv, scoring=SCORING, verbose=1, n_jobs=N_JOBS
+        )
         r2, neg_mse, neg_mae = (scores[f"test_{k}"] for k in SCORING)
         r2 = r2.mean()
         rmse = np.sqrt(-neg_mse).mean()
         mae = -neg_mae.mean()
         cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
 
-    rr = rogi(xs, y, metric=f.metric, min_dt=0.01)
+    rr = rogi(xs, y_scaled, False, metric=f.metric, min_dt=0.01, domain=domain)
     records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
 
     return records
@@ -109,14 +118,15 @@ def calc(
     n: int,
     repeats: Optional[int] = 5,
     cv: Optional[KFold] = None,
+    v1: bool = False
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
 
     if cv is not None:
-        records = _calc_cv(df, dt_string, f, n, cv)
+        records = _calc_cv(df, dt_string, f, n, cv, v1)
     else:
-        records = _calc_rogi(df, dt_string, f, n, repeats)
+        records = _calc_rogi(df, dt_string, f, n, repeats, v1)
 
     return records
 
@@ -189,6 +199,8 @@ class RogiSubcommand(Subcommand):
             "--reinit",
             action="store_true",
             help="randomize the weights of a pretrained model before using it",
+        )
+        parser.add_argument("--v1", action="store_true", help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)"
         )
 
         return parser
