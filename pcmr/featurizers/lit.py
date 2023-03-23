@@ -2,9 +2,9 @@ import logging
 from typing import Iterable, Optional, TypeVar
 from typing_extensions import Self
 
+from lightning import pytorch as pl
 import numpy as np
 from numpy.typing import ArrayLike
-import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import torchdrug.data
@@ -47,12 +47,9 @@ class LitFeaturizerMixin(BatchSizeMixin):
     def __call__(self, smis: Iterable[str], quiet: bool = False) -> np.ndarray:
         dataloader = self.build_unsupervised_loader(smis)
 
-        gpus = 1 if torch.cuda.is_available() else 0
         trainer = pl.Trainer(
-            False,
-            False,
-            accelerator="gpu" if gpus else "cpu",
-            devices=gpus or 1,
+            logger=False,
+            devices=1,
             enable_model_summary=False,
             enable_progress_bar=not quiet,
         )
@@ -64,12 +61,8 @@ class LitFeaturizerMixin(BatchSizeMixin):
         self.setup_finetune()
         train_loader, val_loader = self.build_finetune_loaders(*splits)
 
-        gpus = 1 if torch.cuda.is_available() else 0
         trainer = pl.Trainer(
-            None,
-            False,
-            accelerator="gpu" if gpus else "cpu",
-            devices=gpus or 1,
+            devices=1,
             max_epochs=20,
             enable_model_summary=False,
         )

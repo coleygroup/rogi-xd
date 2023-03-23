@@ -234,7 +234,7 @@ class RogiSubcommand(Subcommand):
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    records_ = calc(f, d, t, args.N, args.repeats, cv)
+                    records_ = calc(f, d, t, args.N, args.repeats, cv, args.v1)
                     records.extend(records_)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")

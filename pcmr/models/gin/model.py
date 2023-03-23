@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Optional
 
-import pytorch_lightning as pl
+from lightning import pytorch as pl
 import torch
 from torch import Tensor
 from torchdrug.models import GIN
