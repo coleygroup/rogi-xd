@@ -1,19 +1,56 @@
-#/bin/bash
+#!/usr/bin/env bash
 
-featurizers=$1
-input=${2:-scripts/tdc+guac.txt}
-N=${3:-10000}
+usage() {
+    echo "Usage: $(basename "$0") [-h] [-f FEATURIZERS] [-i INPUT] [-n N] [-r] [-v]"
+    echo
+    echo "   -f FEATURIZERS         the featurizers to use (default='descriptor morgan VAE GIN chemberta CHEMGPT')"
+    echo "   -i INPUT               a plaintext file containing a dataset on each line (default=scripts/tdc+guac.txt)"
+    echo "   -n N                   the number of data to downsample to, if necessary (default=10000)"
+    echo "   -r                     whether to reinitialize the chemberta and chemgpt models"
+    echo "   -v                     whether to use the v1 ROGI formulation"
+    echo "   -h                     show the help and exit"
+    echo
+    return
+}
 
-if [ -z "$featurizers" ]; then
-    featurizers=( descriptor morgan VAE GIN  chemberta chemgpt )
+while getopts "hrvi:n:f:" arg; do
+    case $arg in
+        f) featurizers=( $OPTARG );;
+        i) input=$OPTARG;;
+        n) N=$OPTARG;;
+        r) reinit=true;;
+        v) v1=true;;
+        h) usage; exit 0;;
+        *) echo "Invalid argument"; usage; exit 1;;
+    esac
+done
+
+[[ -z "$featurizers" ]] && featurizers=( descriptor morgan VAE GIN  chemberta chemgpt )
+[[ -z "$input" ]] && input="scripts/tdc+guac.txt"
+[[ -z "$N" ]] && N=10000
+[[ -z "$reinit" ]] && reinit=false
+
+[[ "$reinit" = true ]] && reinit_flag="--reinit" || reinit_flag=""
+if [[ "$v1" = true ]]; then
+    parent_dir=`basename $input .txt`_v1
+    v1_flag="--v1"
 else
-    featurizers=( $featurizers )
+    parent_dir=`basename $input .txt`_v2
+    v1_flag=""
 fi
+
 
 echo "Running with featurizers: ${featurizers[*]}"
 
 for f in "${featurizers[@]}"; do
-    output=results/raw/cv/`basename $input .txt`_v2/${f}.json
+    [[ "$reinit" = true ]] && name=${f}_reinit.json || name=${f}.json
+    output=results/raw/cv/${parent_dir}/${name}
     model_dir=models/$f/zinc
-    pcmr rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg
+
+    echo pcmr rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg \
+        ${reinit_flag} ${v1_flag}
+
+    if [[ "$reinit" = true ]]; then
+        sed -i -e "s/${f}/${f}_reinit/I" $output 
+    fi
 done
