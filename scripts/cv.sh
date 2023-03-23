@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 usage() {
     echo "Usage: $(basename "$0") [-h] [-f FEATURIZERS] [-i INPUT] [-n N] [-r] [-v]"
@@ -47,7 +47,7 @@ for f in "${featurizers[@]}"; do
     output=results/raw/cv/${parent_dir}/${name}
     model_dir=models/$f/zinc
 
-    echo pcmr rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg \
+    pcmr rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg \
         ${reinit_flag} ${v1_flag}
 
     if [[ "$reinit" = true ]]; then

@@ -1,13 +1,18 @@
-.PHONY: v1 v2
+.PHONY: v1 v1-reinit v2 v2-reinit rogi
+
+all : v1 v1-reinit v2 v2-reinit rogi
 
 v1:
-	./scripts/cv-getopts.sh -v
+	./scripts/cv.sh -v
 
 v2:
-	./scripts/cv-getopts.sh
+	./scripts/cv.sh
 
 v1-reinit:
-	./scripts/cv-getopts.sh -v -r -f "chemgpt chemberta"
+	./scripts/cv.sh -v -r -f "chemgpt chemberta"
 
 v2-reinit:
-	./scripts/cv-getopts.sh -r -f "chemgpt chemberta"
+	./scripts/cv.sh -r -f "chemgpt chemberta"
+
+rogi:
+	./scripts/rogi.sh
