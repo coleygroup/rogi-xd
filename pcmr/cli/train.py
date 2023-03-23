@@ -118,7 +118,7 @@ class TrainSubcommand(Subcommand):
             new_dir = output_dir.with_name(f"{output_dir.name}.{NOW}")
             model.save(new_dir)
             logger.info(
-                f"{output_dir} is not empty! Saved  {args.model} model to {new_dir} instead..."
+                f"{output_dir} is not empty! Saved {args.model} model to {new_dir} instead..."
             )
         else:
             model.save(output_dir)
@@ -133,7 +133,7 @@ class TrainSubcommand(Subcommand):
         gpus: Optional[int] = None,
         chkpt: Optional[PathLike] = None,
     ) -> tuple[pl.LightningModule, Path]:
-        MODEL_NAME = "GIN"
+        MODEL_NAME = "gin"
         TODAY = date.today().isoformat()
 
         dataset = CustomDataset()
@@ -183,7 +183,7 @@ class TrainSubcommand(Subcommand):
         gpus: Optional[int] = None,
         chkpt: Optional[PathLike] = None,
     ):
-        MODEL_NAME = "VAE"
+        MODEL_NAME = "vae"
         TODAY = date.today().isoformat()
 
         tokenizer = Tokenizer.smiles_tokenizer()
