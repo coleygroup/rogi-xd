@@ -8,7 +8,7 @@ from pcmr.utils.rogi import RogiResult
 
 @dataclass(frozen=True)
 class RogiRecord:
-    features: str
+    representation: str
     dataset_and_task: str
     rr: InitVar[RogiResult]
 

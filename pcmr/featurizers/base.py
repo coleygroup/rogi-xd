@@ -37,3 +37,6 @@ class FeaturizerBase(ABC):
         2. train and val splits.
         3. train, val, and test splits. NOTE: the test split will be ignored.
         """
+
+    def __str__(self) -> str:
+        return self.alias

@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 from typing_extensions import Self
 
 from numpy.typing import ArrayLike
@@ -14,9 +14,9 @@ from pcmr.utils.rogi import Metric
 class MorganFeauturizer(FeaturizerBase):
     metric = Metric.TANIMOTO
 
-    def __init__(self, radius: int = 2, length: int = 512, **kwargs):
+    def __init__(self, radius: int = 2, length: Optional[int] = 512, **kwargs):
         self.radius = radius
-        self.length = length
+        self.length = length or 512
         self.quiet = False
 
     def __call__(self, smis: Iterable[str]) -> list[ExplicitBitVect]:

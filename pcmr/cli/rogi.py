@@ -58,18 +58,18 @@ def _calc_rogi(
             xs = f(df_sample.smiles.tolist())
             y = df_sample.y.values
             rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
-            record = RogiRecord(f.alias, dt_string, rr)
+            record = RogiRecord(str(f), dt_string, rr)
             records.append(record)
     elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
         records = []
         for _ in range(repeats):
             xs = f(df.smiles.tolist())
             rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
-            records.append(RogiRecord(f.alias, dt_string, rr))
+            records.append(RogiRecord(str(f), dt_string, rr))
     else:
         xs = f(df.smiles.tolist())
         rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
-        record = RogiRecord(f.alias, dt_string, rr)
+        record = RogiRecord(str(f), dt_string, rr)
         records = [record for _ in range(repeats)]
 
     return records
@@ -111,7 +111,7 @@ def _calc_cv(
         cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
 
     rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
-    records = [RogiAndCrossValRecord(f.alias, dt_string, rr, cvr) for cvr in cvrs]
+    records = [RogiAndCrossValRecord(str(f), dt_string, rr, cvr) for cvr in cvrs]
 
     return records
 
@@ -210,7 +210,9 @@ class RogiSubcommand(Subcommand):
             action="store_true",
             help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)",
         )
-
+        parser.add_argument(
+            "-l", "--length", type=int, default=512, help="the length of a random representation"
+        )
         return parser
 
     @staticmethod
@@ -225,7 +227,8 @@ class RogiSubcommand(Subcommand):
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
-            args.featurizer, args.batch_size, args.model_dir, args.num_workers, args.reinit
+            args.featurizer, args.batch_size, args.model_dir,
+            args.num_workers, args.reinit, args.length
         )
         cv = KFold(args.num_folds, shuffle=True, random_state=SEED) if args.num_folds else None
 
@@ -258,18 +261,22 @@ class RogiSubcommand(Subcommand):
         model_dir: Optional[PathLike] = None,
         num_workers: int = 0,
         reinit: bool = False,
+        length: int = 512,
     ) -> FeaturizerBase:
         featurizer_cls = FeaturizerRegistry[featurizer]
         if featurizer == "vae":
             model = LitCVAE.load(model_dir)
         elif featurizer == "gin":
             model = LitAttrMaskGIN.load(model_dir)
-            # model = LitAttrMaskGIN.from_config(model.to_config())
         elif featurizer in ("chemgpt", "chemberta"):
             model = None
         else:
             model = None
-
+            
         return featurizer_cls(
-            model=model, batch_size=batch_size, num_workers=num_workers, reinit=reinit
+            model=model,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            reinit=reinit,
+            length=length
         )

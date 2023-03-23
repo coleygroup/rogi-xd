@@ -26,6 +26,7 @@ from ae_utils.char import (
 )
 from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
 
+from pcmr.utils import CACHE_DIR
 from pcmr.cli.utils import NOW
 from pcmr.cli.utils.args import ModelType, bounded, fuzzy_lookup
 from pcmr.cli.utils.command import Subcommand
@@ -86,7 +87,7 @@ class TrainSubcommand(Subcommand):
         if args.input:
             smis = args.input.read_text().splitlines()
         else:
-            smis = MolGen(args.dataset).get_data().smiles.tolist()
+            smis = MolGen(args.dataset, CACHE_DIR).get_data().smiles.tolist()
 
         if args.N:
             smis = choices(smis, k=args.N)
