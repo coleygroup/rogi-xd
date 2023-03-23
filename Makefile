@@ -1,17 +1,16 @@
-.PHONY: v1 v1-reinit v2 v2-reinit rogi
+ALL = cv-v1 cv-v2 rogi
 
-all : v1 v1-reinit v2 v2-reinit rogi
+.PHONY: $(ALL)
+.SILENT: $(ALL)
 
-v1:
+all : $(ALL)
+
+cv-v1:
 	./scripts/cv.sh -v
+	/scripts/cv.sh -v -r -f "chemgpt chemberta"
 
-v2:
+cv-v2:
 	./scripts/cv.sh
-
-v1-reinit:
-	./scripts/cv.sh -v -r -f "chemgpt chemberta"
-
-v2-reinit:
 	./scripts/cv.sh -r -f "chemgpt chemberta"
 
 rogi:
