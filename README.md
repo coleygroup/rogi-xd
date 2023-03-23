@@ -58,9 +58,11 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
 
 ## Results
 
+All results can be generated via the following command: `make all`
+
 ### ROGI data
 
-Use the `pcmr rogi` command line entry point to run your desired calculations. All results were generated using the [`scripts/rogi.sh`](./scripts/rogi.sh) script.
+Use the `pcmr rogi` command line entry point to run your desired calculations.
 
 ```
 $ usage: pcmr rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR]
@@ -95,7 +97,7 @@ optional arguments:
 
 ### Cross-validation and coarse-graining results
 
-Use the same script as before with the addition of the `--cv` and `--cg` flags, like so: `pcmr rogi --cv --cg`
+Use the same entrypoint as before with the addition of the `--cv` and `--cg` flags, like so: `pcmr rogi --cv --cg`
 
 _Note_: The scripts rely datasets from both TDC [[1],[2]]. The script will first search for the corresponding dataset in the `$PCMR_CACHE` directory (where `PCMR_CACHE` is an environment variable) and if it doesn't find them, will then download them to that directory. If this environment variable is not set, the scripts will use `$HOME/.cache/pcmr` instead.
 
