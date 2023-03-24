@@ -30,19 +30,18 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
 ```
 
 
-## Training models
+## Pretrained models
 
-- both the VAE and GIN were trained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
+- both the VAE and GIN were pretrained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
 - to train your own models, run the following command:
 
   ```bash
   pcmr train -m (gin | vae) -d zinc -c 8
   ```
-  The models will be saved to the following directory `models/{GIN,VAE}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
+  The models will be saved to the following directory `models/{gin,vae}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
 
   _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you like the composable object model we used, feel free use it in your own project. I don't think a full citation is necessary, but a docstring reference and a shoutout would be appreciated :hugs:.The following modules will contain most of the code you need:
 
-  - `pcmr.models.vae`
   - `pcmr.models.gin`
   - `pcmr.cli.train` 
 
@@ -53,7 +52,7 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
   git lfs pull
   ```
 
-  there should be two new directories: `models/GIN/zinc` and `models/VAE/zinc`
+  there should be two new directories: `models/gin/zinc` and `models/vae/zinc`
 
 
 ## Results
@@ -65,8 +64,7 @@ All results can be generated via the following command: `make all`
 Use the `pcmr rogi` command line entry point to run your desired calculations.
 
 ```
-$ usage: pcmr rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR]
-                 [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit]
+$ usage: pcmr rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -77,7 +75,7 @@ optional arguments:
   -i INPUT, --input INPUT
                         A plaintext file containing a dataset/task entry on each line. Mutually exclusive with the '--datasets-tasks' argument
   -d DATASETS_TASKS [DATASETS_TASKS ...], --datasets-tasks DATASETS_TASKS [DATASETS_TASKS ...], --dt DATASETS_TASKS [DATASETS_TASKS ...], --datasets DATASETS_TASKS [DATASETS_TASKS ...]
-  -f {descriptor,chemberta,chemgpt,gin,vae}, --featurizer {descriptor,chemberta,chemgpt,gin,vae}
+  -f {descriptor,morgan,chemberta,chemgpt,gin,vae,random}, --featurizer {descriptor,morgan,chemberta,chemgpt,gin,vae,random}
   -r REPEATS, --repeats REPEATS
   -N N                  the number of data to subsample
   -o OUTPUT, --output OUTPUT
@@ -93,6 +91,7 @@ optional arguments:
                         the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag
                         (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified
   --reinit              randomize the weights of a pretrained model before using it
+  --v1                  whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)
 ```
 
 ### Cross-validation and coarse-graining results
@@ -110,7 +109,7 @@ _Note_: The scripts rely datasets from both TDC [[1],[2]]. The script will first
 
 See the corresponding notebook:
 - [`auc.ipynb`](./notebooks/corrleation.ipynb): loss of dispersion plots
-- [`corrleation.ipynb`](./notebooks/corrleation.ipynb): correlation plots and `$r` distribution plots
+- [`correlation.ipynb`](./notebooks/correlation.ipynb): correlation plots and `$r` distribution plots
 - [`rogi-dist.ipynb`](./notebooks/rogi-dist.ipynb): ROGI distribution boxplots and parity plots
 - [`toy_surfaces.ipynb`](./notebooks/toy_surfaces.ipynb): toy example figures
 

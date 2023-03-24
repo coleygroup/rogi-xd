@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
@@ -96,7 +96,7 @@ def _calc_cv(
     y = df.y.values
 
     X = xs if isinstance(xs, np.ndarray) else np.array(xs)
-    y_normed = StandardScaler().fit_transform(y.reshape(-1, 1))[:, 0]
+    y_normed = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
 
     cvrs = []
     for name, model in name2model.items():
@@ -211,7 +211,7 @@ class RogiSubcommand(Subcommand):
             help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)",
         )
         parser.add_argument(
-            "-l", "--length", type=int, default=512, help="the length of a random representation"
+            "-l", "--length", type=int, nargs="?", help="the length of a random representation"
         )
         return parser
 
@@ -261,7 +261,7 @@ class RogiSubcommand(Subcommand):
         model_dir: Optional[PathLike] = None,
         num_workers: int = 0,
         reinit: bool = False,
-        length: int = 512,
+        length: Optional[int] = None,
     ) -> FeaturizerBase:
         featurizer_cls = FeaturizerRegistry[featurizer]
         if featurizer == "vae":

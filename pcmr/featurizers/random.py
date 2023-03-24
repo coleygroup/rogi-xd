@@ -12,8 +12,8 @@ from pcmr.utils.rogi import Metric
 class RandomFeauturizer(FeaturizerBase):
     metric = Metric.EUCLIDEAN
 
-    def __init__(self, length: Optional[int] = 512, **kwargs):
-        self.length = length or 512
+    def __init__(self, length: Optional[int] = 128, **kwargs):
+        self.length = length or 128
 
     def __call__(self, smis: Iterable[str]) -> np.ndarray:
         n = sum(1 for _ in smis)
