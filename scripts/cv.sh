@@ -27,7 +27,7 @@ while getopts "hrvi:n:f:l:" arg; do
     esac
 done
 
-[[ -z "$featurizers" ]] && featurizers=( descriptor morgan VAE GIN  chemberta chemgpt random )
+[[ -z "$featurizers" ]] && featurizers=( descriptor morgan vae gin chemberta chemgpt random )
 [[ -z "$input" ]] && input="scripts/tdc+guac.txt"
 [[ -z "$N" ]] && N=10000
 [[ -z "$reinit" ]] && reinit=false

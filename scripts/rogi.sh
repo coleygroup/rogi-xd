@@ -1,6 +1,6 @@
 #!/bin/bash
 
-featurizers=${1:-"descriptor morgan VAE GIN chemberta chemgpt"}
+featurizers=${1:-"descriptor morgan vae gin chemberta chemgpt"}
 input=${2:-scripts/tdc+guac.txt}
 N=${3:-10000}
 repeats=${4:-5}

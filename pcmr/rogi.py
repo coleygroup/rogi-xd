@@ -336,17 +336,22 @@ def rogi(
         the distance metric to use or its string alias. If `None`, will choose an appropriate
         distance metric based on the representation supplied:
 
-            1) `np.ndarray`: `Metric.EUCLIDEAN`
-            2) `Sequence[ExplicitBitVect]`: `Metric.TANIMOTO`
-            3) `Sequence[str]`: `Metric.TANIMOTO`
+        1) `np.ndarray`: `Metric.EUCLIDEAN`
+        2) `Sequence[ExplicitBitVect]`: `Metric.TANIMOTO`
+        3) `Sequence[str]`: `Metric.TANIMOTO`
 
     fp_config: FingerprintConfig, default=FingerprintConfig()
         the config to use for calculating fingerprints of the input SMILES strings, if necessary.
         See :class:`~pcmr.utils.FingerprintConfig` for more details
     min_dt : float, default=0.01
         the mimimum distance to use between threshold values when coarse graining the dataset,
-    log_ratio : bool, default=True
-        TODO
+    domain : IntegrationDomain, default=IntegrationDomain.LOG_CLUSTER_RATIO
+        the domain to integrate over when calculating AUC:
+
+        * IntegrationDomain.LOG_CLUSTER_RATIO: use :math:`1 - \log N_{\mathrm{clusters}} / \log N`
+        * IntegrationDomain.CLUSTER_RATIO: use :math:`1 - N_{\mathrm{clusters}} / N`
+        * IntegrationDomain.THRESHOLD: use distance threshold :math:`t`
+
     nboots : int, default=1
         the number of samples to use when calculating uncertainty via bootstrapping.
         If `nboots <= 1`, no bootstrapping will be performed
