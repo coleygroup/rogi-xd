@@ -60,12 +60,6 @@ def _calc_rogi(
             rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
             record = RogiRecord(str(f), dt_string, rr)
             records.append(record)
-    elif isinstance(f, VAEFeaturizer):  # VAEs embed inputs stochastically
-        records = []
-        for _ in range(repeats):
-            xs = f(df.smiles.tolist())
-            rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
-            records.append(RogiRecord(str(f), dt_string, rr))
     else:
         xs = f(df.smiles.tolist())
         rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
