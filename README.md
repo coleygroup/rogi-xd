@@ -42,7 +42,11 @@ Evaluating the roughness of learned representations from chemical foundation mod
     && pip install -r requirements.txt
     ```
 
-3. install the `rogi_xd` pacakge: `pip install -e . --no-deps`
+3. install the `ae_utils` and `rogi_xd` pacakges: 
+    ```
+    pip install autoencoders/
+    pip install -e . --no-deps
+    ```
 
 
 ## Pretrained models

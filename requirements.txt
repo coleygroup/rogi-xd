@@ -1,4 +1,3 @@
-ae_utils @ git+https://github.com/davidegraff/autoencoders.git@c6798bf0947f52a0260a5fd575986ed5eed990d1
 fastcluster
 numpy
 PyTDC
