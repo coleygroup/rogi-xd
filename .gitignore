@@ -175,3 +175,5 @@ oracle
 chkpts/*
 models/*
 results/*
+tests/*
+scripts/*
