@@ -3,7 +3,7 @@ from typing import NamedTuple, Optional
 
 import numpy as np
 
-from pcmr.utils.utils import AutoName
+from rogi_xd.utils.utils import AutoName
 
 
 class Fingerprint(AutoName):

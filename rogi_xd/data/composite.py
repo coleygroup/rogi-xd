@@ -2,11 +2,11 @@ from typing import Optional
 
 import pandas as pd
 
-from pcmr.data.base import DataModule
-from pcmr.data.tdc import TdcDataModule
-from pcmr.data.guacamol import GuacaMolDataModule
-from pcmr.data.dockstring import DockstringDataModule
-from pcmr.utils.exceptions import InvalidDatasetError
+from rogi_xd.data.base import DataModule
+from rogi_xd.data.tdc import TdcDataModule
+from rogi_xd.data.guacamol import GuacaMolDataModule
+from rogi_xd.data.dockstring import DockstringDataModule
+from rogi_xd.utils.exceptions import InvalidDatasetError
 
 
 class CompositeDataModule(DataModule):

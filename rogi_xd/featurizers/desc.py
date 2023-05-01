@@ -9,7 +9,7 @@ from rdkit.Chem import Descriptors
 from sklearn.preprocessing import MinMaxScaler
 from tqdm import tqdm
 
-from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.featurizers.base import FeaturizerBase, FeaturizerRegistry
 
 logger = logging.getLogger(__name__)
 

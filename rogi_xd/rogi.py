@@ -13,7 +13,7 @@ from scipy.integrate import trapezoid
 from scipy.spatial.distance import squareform, pdist
 from sklearn.preprocessing import MinMaxScaler
 
-from pcmr.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult, IntegrationDomain
+from rogi_xd.utils import Fingerprint, FingerprintConfig, flist, Metric, RogiResult, IntegrationDomain
 
 Input = Union[np.ndarray, Sequence[ExplicitBitVect], Sequence[str]]
 

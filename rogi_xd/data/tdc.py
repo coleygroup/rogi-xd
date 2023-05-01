@@ -6,9 +6,9 @@ import pandas as pd
 from tdc.single_pred import ADME, Tox
 from tdc.utils import retrieve_label_name_list
 
-from pcmr.utils.utils import CACHE_DIR
-from pcmr.data.base import DataModule
-from pcmr.utils.exceptions import InvalidDatasetError
+from rogi_xd.utils.utils import CACHE_DIR
+from rogi_xd.data.base import DataModule
+from rogi_xd.utils.exceptions import InvalidDatasetError
 
 
 class TdcDataModule(DataModule):

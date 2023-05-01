@@ -3,8 +3,8 @@ from typing import Optional
 
 import pandas as pd
 
-from pcmr.data.base import DataModule
-from pcmr.utils.utils import CACHE_DIR, download_file
+from rogi_xd.data.base import DataModule
+from rogi_xd.utils.utils import CACHE_DIR, download_file
 
 logger = logging.getLogger(__name__)
 

@@ -15,15 +15,15 @@ from sklearn.neural_network import MLPRegressor
 from sklearn.cross_decomposition import PLSRegression
 
 from ae_utils.char import LitCVAE
-from pcmr.data import data
-from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
-from pcmr.models.gin import LitAttrMaskGIN
-from pcmr.rogi import rogi
+from rogi_xd.data import data
+from rogi_xd.featurizers import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.models.gin import LitAttrMaskGIN
+from rogi_xd.rogi import rogi
 
-from pcmr.cli.utils.args import dataset_and_task
-from pcmr.cli.utils.command import Subcommand
-from pcmr.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCrossValRecord
-from pcmr.utils.rogi import IntegrationDomain
+from rogi_xd.cli.utils.args import dataset_and_task
+from rogi_xd.cli.utils.command import Subcommand
+from rogi_xd.cli.utils.records import CrossValdiationResult, RogiRecord, RogiAndCrossValRecord
+from rogi_xd.utils.rogi import IntegrationDomain
 
 logger = logging.getLogger(__name__)
 

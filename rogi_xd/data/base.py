@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 
 import pandas as pd
 
-from pcmr.utils.exceptions import InvalidDatasetError, InvalidTaskError
+from rogi_xd.utils.exceptions import InvalidDatasetError, InvalidTaskError
 
 logger = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ import pandas as pd
 from tdc import Oracle
 from tdc.generation import MolGen
 
-from pcmr.utils.utils import CACHE_DIR
-from pcmr.data.base import DataModule
+from rogi_xd.utils.utils import CACHE_DIR
+from rogi_xd.data.base import DataModule
 
 logger = logging.getLogger(__name__)
 

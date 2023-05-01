@@ -4,7 +4,7 @@ from typing import Any, Callable, Optional
 
 from tdc.utils import fuzzy_search
 
-from pcmr.utils import AutoName
+from rogi_xd.utils import AutoName
 
 
 class ModelType(AutoName):

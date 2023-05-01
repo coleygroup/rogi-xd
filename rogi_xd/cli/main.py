@@ -2,12 +2,12 @@ from argparse import ArgumentParser
 import logging
 from typing import Type
 
-from pcmr.cli.utils.command import Subcommand
-from pcmr.cli.finetune import FinetuneSubcommand
-from pcmr.cli.list import ListSubcommand
-from pcmr.cli.rogi import RogiSubcommand
-from pcmr.cli.train import TrainSubcommand
-from pcmr.cli.utils import NOW, pop_attr
+from rogi_xd.cli.utils.command import Subcommand
+from rogi_xd.cli.finetune import FinetuneSubcommand
+from rogi_xd.cli.list import ListSubcommand
+from rogi_xd.cli.rogi import RogiSubcommand
+from rogi_xd.cli.train import TrainSubcommand
+from rogi_xd.cli.utils import NOW, pop_attr
 
 logger = logging.getLogger(__name__)
 

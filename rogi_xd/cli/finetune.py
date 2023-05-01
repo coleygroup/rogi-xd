@@ -9,14 +9,14 @@ import pandas as pd
 from sklearn.model_selection import KFold
 
 from ae_utils.char import LitCVAE
-from pcmr.data import data
-from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
-from pcmr.models.gin.model import LitAttrMaskGIN
-from pcmr.rogi import rogi
-from pcmr.utils import Metric
-from pcmr.cli.utils.command import Subcommand
-from pcmr.cli.utils.args import dataset_and_task
-from pcmr.cli.utils.records import RogiRecord
+from rogi_xd.data import data
+from rogi_xd.featurizers import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.models.gin.model import LitAttrMaskGIN
+from rogi_xd.rogi import rogi
+from rogi_xd.utils import Metric
+from rogi_xd.cli.utils.command import Subcommand
+from rogi_xd.cli.utils.args import dataset_and_task
+from rogi_xd.cli.utils.records import RogiRecord
 
 logger = logging.getLogger(__name__)
 

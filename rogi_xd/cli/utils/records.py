@@ -3,7 +3,7 @@ from typing import NamedTuple
 
 import numpy as np
 
-from pcmr.utils.rogi import RogiResult
+from rogi_xd.utils.rogi import RogiResult
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 from argparse import ArgumentParser, FileType, Namespace
 
-from pcmr.data import data
-from pcmr.cli.utils.command import Subcommand
+from rogi_xd.data import data
+from rogi_xd.cli.utils.command import Subcommand
 
 
 class ListSubcommand(Subcommand):

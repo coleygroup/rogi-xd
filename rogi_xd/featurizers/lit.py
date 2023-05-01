@@ -14,9 +14,9 @@ from torchdrug.tasks import PropertyPrediction
 from ae_utils.char import LitCVAE, UnsupervisedDataset, SemisupervisedDataset
 from ae_utils.supervisors import RegressionSupervisor
 from ae_utils.utils.config import Configurable
-from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
-from pcmr.featurizers.mixins import BatchSizeMixin
-from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
+from rogi_xd.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.featurizers.mixins import BatchSizeMixin
+from rogi_xd.models.gin import LitAttrMaskGIN, CustomDataset
 
 logging.getLogger("pytorch_lightning").setLevel(logging.WARNING)
 

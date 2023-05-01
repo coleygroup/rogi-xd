@@ -24,12 +24,12 @@ from ae_utils.char import (
     CachedUnsupervisedDataset,
     SemisupervisedDataset,
 )
-from pcmr.models.gin import LitAttrMaskGIN, CustomDataset
+from rogi_xd.models.gin import LitAttrMaskGIN, CustomDataset
 
-from pcmr.utils import CACHE_DIR
-from pcmr.cli.utils import NOW
-from pcmr.cli.utils.args import ModelType, bounded, fuzzy_lookup
-from pcmr.cli.utils.command import Subcommand
+from rogi_xd.utils import CACHE_DIR
+from rogi_xd.cli.utils import NOW
+from rogi_xd.cli.utils.args import ModelType, bounded, fuzzy_lookup
+from rogi_xd.cli.utils.command import Subcommand
 
 logger = logging.getLogger(__name__)
 torch.set_float32_matmul_precision("high")

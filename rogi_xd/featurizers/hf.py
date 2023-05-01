@@ -8,9 +8,9 @@ import selfies as sf
 import torch
 from transformers import pipeline, AutoModel, AutoConfig
 
-from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
-from pcmr.featurizers.mixins import BatchSizeMixin
-from pcmr.utils.utils import select_device
+from rogi_xd.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.featurizers.mixins import BatchSizeMixin
+from rogi_xd.utils.utils import select_device
 
 logger = logging.getLogger(__name__)
 

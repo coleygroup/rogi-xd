@@ -4,8 +4,8 @@ from typing_extensions import Self
 import numpy as np
 from numpy.typing import ArrayLike
 
-from pcmr.featurizers.base import FeaturizerBase, FeaturizerRegistry
-from pcmr.utils.rogi import Metric
+from rogi_xd.featurizers.base import FeaturizerBase, FeaturizerRegistry
+from rogi_xd.utils.rogi import Metric
 
 
 @FeaturizerRegistry.register(alias="random")
