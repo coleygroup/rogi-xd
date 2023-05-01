@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.neural_network import MLPRegressor
@@ -16,7 +16,7 @@ from sklearn.cross_decomposition import PLSRegression
 
 from ae_utils.char import LitCVAE
 from pcmr.data import data
-from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry, VAEFeaturizer
+from pcmr.featurizers import FeaturizerBase, FeaturizerRegistry
 from pcmr.models.gin import LitAttrMaskGIN
 from pcmr.rogi import rogi
 
@@ -221,8 +221,12 @@ class RogiSubcommand(Subcommand):
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
-            args.featurizer, args.batch_size, args.model_dir,
-            args.num_workers, args.reinit, args.length
+            args.featurizer,
+            args.batch_size,
+            args.model_dir,
+            args.num_workers,
+            args.reinit,
+            args.length,
         )
         cv = KFold(args.num_folds, shuffle=True, random_state=SEED) if args.num_folds else None
 
@@ -266,11 +270,11 @@ class RogiSubcommand(Subcommand):
             model = None
         else:
             model = None
-            
+
         return featurizer_cls(
             model=model,
             batch_size=batch_size,
             num_workers=num_workers,
             reinit=reinit,
-            length=length
+            length=length,
         )

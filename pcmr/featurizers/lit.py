@@ -48,10 +48,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
         dataloader = self.build_unsupervised_loader(smis)
 
         trainer = pl.Trainer(
-            logger=False,
-            devices=1,
-            enable_model_summary=False,
-            enable_progress_bar=not quiet,
+            logger=False, devices=1, enable_model_summary=False, enable_progress_bar=not quiet
         )
         Xs = trainer.predict(self.model, dataloader)
 
@@ -61,11 +58,7 @@ class LitFeaturizerMixin(BatchSizeMixin):
         self.setup_finetune()
         train_loader, val_loader = self.build_finetune_loaders(*splits)
 
-        trainer = pl.Trainer(
-            devices=1,
-            max_epochs=20,
-            enable_model_summary=False,
-        )
+        trainer = pl.Trainer(devices=1, max_epochs=20, enable_model_summary=False)
         trainer.fit(self.model, train_loader, val_loader)
 
         return self
