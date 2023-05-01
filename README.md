@@ -1,68 +1,77 @@
-# Pretrained Chemical Model Roughness
+# ROGI-XD
+
+Evaluating the roughness of learned representations from chemical foundation models
+
+## Table of Contents
+
+- [Setup](#setup)
+- [Pretrained models](#pretrained-models)
+- [Results](#results)
+- [Figures](#figures)
 
 ## Setup
 
-As a first step, clone this repository and its submodules:
-```
-git clone --recurse-submodules THIS_REPO
-```
+0. (if necessary) install conda
+1. clone this repository and its submodules:
+    ```
+    git clone --recurse-submodules THIS_REPO
+    ```
+2. Choose one option below to install all required packages
 
-### Conda
-```
-conda env create -f environment.yml
-```
-_Note_: `environment.yml` contains CUDA 11.6 versions of several packages. If you want to use this environment on CPU, replace `cu116` with `cpu` before running the above command
-```
-sed -i -e 's/cu116/cpu/g' environment.yml
-conda env create -f environment.yml
-```
-### Manual
-_Note_: this is only recommended in the event that you'd like specify different package versions
-```
-conda create -n rogi_xd -y python=3.9 && conda activate rogi_xd
-CUDA=cu116  # NOTE: depending on your machine, this can be any one of: ("cpu" | "cu116" | "cu117") 
-pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUDA}\
-  && pip install pyg-lib torch-scatter torch-sparse \
-    torch-cluster torch-spline-conv torch-geometric \
-    -f https://data.pyg.org/whl/torch-1.13.1+${CUDA}.html \
-  && pip install git+https://github.com/DeepGraphLearning/torchdrug \
-  && pip install . autoencoders
-```
+    a. **Conda** (recommended)
+    ```
+    conda env create -f environment.yml
+    ```
+    _Note_: `environment.yml` contains CUDA 11.6 versions of several packages. If you want to use this environment on CPU, replace `cu116` with `cpu` before running the above command
+    ```
+    sed -i -e 's/cu116/cpu/g' environment.yml
+    conda env create -f environment.yml
+    ```
+    
+    b. **Manual**
+    
+    _Note_: this is only recommended in the event that you'd like specify different package versions
+    ```
+    conda create -n rogi_xd -y python=3.9 && conda activate rogi_xd
+    CUDA=cu116  # NOTE: depending on your machine, this can be any one of: ("cpu" | "cu116" | "cu117") 
+    pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUDA}\
+    && pip install pyg-lib torch-scatter torch-sparse \
+        torch-cluster torch-spline-conv torch-geometric \
+        -f https://data.pyg.org/whl/torch-1.13.1+${CUDA}.html \
+    && pip install git+https://github.com/DeepGraphLearning/torchdrug \
+    && pip install -r requirements.txt
+    ```
+
+3. install the `rogi_xd` pacakge: `pip install -e . --no-deps`
 
 
 ## Pretrained models
 
-- both the VAE and GIN were pretrained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
-- to train your own models, run the following command:
+- to use the same pretrained models, run the following commands:
+  ```bash
+  git lfs install
+  git lfs pull
+  ```
+  there should be two new directories: `models/gin/zinc` and `models/vae/zinc`
 
+- both the VAE and GIN were pretrained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
+
+- to train your own models, run one of the following commands:
   ```bash
   rogi_xd train -m (gin | vae) -d zinc -c 8
   ```
   The models will be saved to the following directory `models/{gin,vae}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
 
-  _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you like the composable object model we used, feel free use it in your own project. I don't think a full citation is necessary, but a docstring reference and a shoutout would be appreciated :hugs:.The following modules will contain most of the code you need:
-
-  - `rogi_xd.models.gin`
-  - `rogi_xd.cli.train` 
-
-- to use the same pretrained models, run the following commands:
-
-  ```bash
-  git lfs install
-  git lfs pull
-  ```
-
-  there should be two new directories: `models/gin/zinc` and `models/vae/zinc`
+  _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you wish to reuse the VAE object model, then you'll want to head to the [`autoencoders` submodule](https://github.com/davidegraff/autoencoders)
 
 
 ## Results
 
-All results can be generated via the following command: `make all`
+All results can be generated via the following command: **`make all`**
 
 ### ROGI data
 
 Use the `rogi_xd rogi` command line entry point to run your desired calculations.
-
 ```
 usage: rogi_xd rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,morgan,chemberta,chemgpt,gin,vae,random}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE]
                     [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit] [--orig] [-l [LENGTH]]
