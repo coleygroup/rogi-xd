@@ -1,4 +1,4 @@
-name: pcmr
+name: rogi_xd
 channels:
   - conda-forge
 dependencies:

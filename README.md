@@ -19,7 +19,7 @@ conda env create -f environment.yml
 ### Manual
 _Note_: this is only recommended in the event that you'd like specify different package versions
 ```
-conda create -n pcmr -y python=3.9 && conda activate pcmr
+conda create -n rogi_xd -y python=3.9 && conda activate rogi_xd
 CUDA=cu116  # NOTE: depending on your machine, this can be any one of: ("cpu" | "cu116" | "cu117") 
 pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUDA}\
   && pip install pyg-lib torch-scatter torch-sparse \
@@ -36,14 +36,14 @@ pip install torch==1.13 --extra-index-url https://download.pytorch.org/whl/${CUD
 - to train your own models, run the following command:
 
   ```bash
-  pcmr train -m (gin | vae) -d zinc -c 8
+  rogi_xd train -m (gin | vae) -d zinc -c 8
   ```
   The models will be saved to the following directory `models/{gin,vae}/zinc`, which can be supplied to the `rogi` command later via the `--model-dir` argument.
 
   _NOTE_: this script trains a simple GIN or VAE and _doesn't_ allow for custom architectures to specified. That's because the goal of this repository **was not** to provide _another_ VAE implementation. If you like the composable object model we used, feel free use it in your own project. I don't think a full citation is necessary, but a docstring reference and a shoutout would be appreciated :hugs:.The following modules will contain most of the code you need:
 
-  - `pcmr.models.gin`
-  - `pcmr.cli.train` 
+  - `rogi_xd.models.gin`
+  - `rogi_xd.cli.train` 
 
 - to use the same pretrained models, run the following commands:
 
@@ -61,10 +61,10 @@ All results can be generated via the following command: `make all`
 
 ### ROGI data
 
-Use the `pcmr rogi` command line entry point to run your desired calculations.
+Use the `rogi_xd rogi` command line entry point to run your desired calculations.
 
 ```
-$ usage: pcmr rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit]
+$ usage: rogi_xd rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -96,19 +96,17 @@ optional arguments:
 
 ### Cross-validation and coarse-graining results
 
-Use the same entrypoint as before with the addition of the `--cv` and `--cg` flags, like so: `pcmr rogi --cv --cg`
+Use the same entrypoint as before with the addition of the `--cv` and `--cg` flags, like so: `rogi_xd rogi --cv --cg`
 
-_Note_: The scripts rely datasets from both TDC [[1],[2]]. The script will first search for the corresponding dataset in the `$PCMR_CACHE` directory (where `PCMR_CACHE` is an environment variable) and if it doesn't find them, will then download them to that directory. If this environment variable is not set, the scripts will use `$HOME/.cache/pcmr` instead.
+_Note_: The scripts rely datasets from both TDC [[1]] and GuacaMol oracle functions evaluated for random molecules sampled from ZINC250k [[2]]. The script will first search for the corresponding dataset in the `$ROGIXD_CACHE` directory (where `ROGIXD_CACHE` is an environment variable) and if it doesn't find them, will then download them to that directory. If this environment variable is not set, the scripts will use `$HOME/.cache/rogi_xd` instead.
 
 [1]: https://tdcommons.ai/single_pred_tasks/overview/
 [2]: https://tdcommons.ai/generation_tasks/molgen/
-[3]: https://figshare.com/articles/dataset/dockstring_dataset/16511577?file=35948138
 
 
 ## Figures
 
 See the corresponding notebook:
-- [`auc.ipynb`](./notebooks/corrleation.ipynb): loss of dispersion plots
 - [`correlation.ipynb`](./notebooks/correlation.ipynb): correlation plots and `$r` distribution plots
 - [`rogi-dist.ipynb`](./notebooks/rogi-dist.ipynb): ROGI distribution boxplots and parity plots
 - [`toy_surfaces.ipynb`](./notebooks/toy_surfaces.ipynb): toy example figures

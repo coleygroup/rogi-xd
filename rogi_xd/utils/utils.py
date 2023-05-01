@@ -9,7 +9,7 @@ import requests
 import torch
 from tqdm import tqdm
 
-CACHE_DIR = os.environ.get("PCMR_CACHE", Path.home() / ".cache" / "pcmr")
+CACHE_DIR = os.environ.get("ROGIXD_CACHE", Path.home() / ".cache" / "rogi_xd")
 
 
 class AutoName(Enum):

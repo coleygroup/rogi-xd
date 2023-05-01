@@ -160,7 +160,7 @@ cython_debug/
 #.idea/
 
 wandb/*
-pcmr/_version.py
+rogi_xd/_version.py
 *.ipynb
 *.csv
 *.pkl
