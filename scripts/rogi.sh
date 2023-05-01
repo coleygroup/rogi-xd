@@ -13,5 +13,5 @@ for f in "${featurizers[@]}"; do
     output=results/raw/rogi/`basename $input .txt`/${f}.csv
     model_dir=models/${f}/zinc
     
-    pcmr rogi -i $input -o $output -f $f -N$N -r $repeats -m ${model_dir} -vvvv --log
+    rogi_xd rogi -i $input -o $output -f $f -N$N -r $repeats -m ${model_dir} -vvvv --log
 done

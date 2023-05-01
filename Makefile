@@ -1,16 +1,16 @@
-ALL = cv-v1 cv-v2 rogi
+ALL = cv-orig cv-xd rogi
 
 .PHONY: $(ALL) clean
 .SILENT: $(ALL) clean cv-rand
 
 all : $(ALL)
 
-cv-v1:
+cv-orig:
 	./scripts/cv.sh -v
 	./scripts/cv.sh -f "random" -l 256 -v
 	./scripts/cv.sh -f "random" -l 512 -v
 
-cv-v2:
+cv-xd:
 	./scripts/cv.sh
 	./scripts/cv.sh -f "random" -l 256
 	./scripts/cv.sh -f "random" -l 512

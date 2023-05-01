@@ -45,9 +45,9 @@ def _calc_rogi(
     f: FeaturizerBase,
     n: int,
     repeats: Optional[int],
-    v1: bool = False,
+    orig: bool = False,
 ) -> list[RogiRecord]:
-    domain = IntegrationDomain.THRESHOLD if v1 else IntegrationDomain.LOG_CLUSTER_RATIO
+    domain = IntegrationDomain.THRESHOLD if orig else IntegrationDomain.LOG_CLUSTER_RATIO
 
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
@@ -75,10 +75,10 @@ def _calc_cv(
     f: FeaturizerBase,
     n: int,
     cv: Optional[KFold] = None,
-    v1: bool = False,
+    orig: bool = False,
     name2model: Optional[dict] = None,
 ) -> list[RogiAndCrossValRecord]:
-    domain = IntegrationDomain.THRESHOLD if v1 else IntegrationDomain.LOG_CLUSTER_RATIO
+    domain = IntegrationDomain.THRESHOLD if orig else IntegrationDomain.LOG_CLUSTER_RATIO
     name2model = name2model or MODELS
 
     if len(df) > n:
@@ -117,15 +117,15 @@ def calc(
     n: int,
     repeats: Optional[int] = 5,
     cv: Optional[KFold] = None,
-    v1: bool = False,
+    orig: bool = False,
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
 
     if cv is not None:
-        records = _calc_cv(df, dt_string, f, n, cv, v1)
+        records = _calc_cv(df, dt_string, f, n, cv, orig)
     else:
-        records = _calc_rogi(df, dt_string, f, n, repeats, v1)
+        records = _calc_rogi(df, dt_string, f, n, repeats, orig)
 
     return records
 
@@ -200,9 +200,9 @@ class RogiSubcommand(Subcommand):
             help="randomize the weights of a pretrained model before using it",
         )
         parser.add_argument(
-            "--v1",
+            "--orig",
             action="store_true",
-            help="whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)",
+            help="whether to use the original ROGI formulation (i.e., distance threshold as the x-axis). By default, uses the ROGI-XD formulation (i.e., 1 - log N_clusters / log N as the x-axis)",
         )
         parser.add_argument(
             "-l", "--length", type=int, nargs="?", help="the length of a random representation"
@@ -235,7 +235,7 @@ class RogiSubcommand(Subcommand):
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    records_ = calc(f, d, t, args.N, args.repeats, cv, args.v1)
+                    records_ = calc(f, d, t, args.N, args.repeats, cv, args.orig)
                     records.extend(records_)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")

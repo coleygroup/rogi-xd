@@ -55,7 +55,7 @@ for f in "${featurizers[@]}"; do
     output=results/raw/cv/${parent_dir}/${name}
     model_dir=models/$f/zinc
 
-    pcmr rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg -l$length \
+    rogi_xd rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg -l$length \
         ${reinit_flag} ${v1_flag}
 
     if [[ "$reinit" = true ]]; then

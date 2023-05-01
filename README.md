@@ -64,7 +64,8 @@ All results can be generated via the following command: `make all`
 Use the `rogi_xd rogi` command line entry point to run your desired calculations.
 
 ```
-$ usage: rogi_xd rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,chemberta,chemgpt,gin,vae}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE] [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit]
+usage: rogi_xd rogi [-h] [--logfile [LOGFILE]] [-v] (-i INPUT | -d DATASETS_TASKS [DATASETS_TASKS ...]) [-f {descriptor,morgan,chemberta,chemgpt,gin,vae,random}] [-r REPEATS] [-N N] [-o OUTPUT] [-b BATCH_SIZE]
+                    [-m MODEL_DIR] [-c NUM_WORKERS] [--coarse-grain] [-k [NUM_FOLDS]] [--reinit] [--orig] [-l [LENGTH]]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -91,7 +92,9 @@ optional arguments:
                         the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag
                         (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified
   --reinit              randomize the weights of a pretrained model before using it
-  --v1                  whether to use the v1 ROGI formulation (distance threshold as the x-axis). By default, uses v2 (1 - log N_clusters / log N as the x-axis)
+  --orig                whether to use the original ROGI formulation (i.e., distance threshold as the x-axis). By default, uses the ROGI-XD formulation (i.e., 1 - log N_clusters / log N as the x-axis)
+  -l [LENGTH], --length [LENGTH]
+                        the length of a random representation
 ```
 
 ### Cross-validation and coarse-graining results
@@ -111,4 +114,4 @@ See the corresponding notebook:
 - [`rogi-dist.ipynb`](./notebooks/rogi-dist.ipynb): ROGI distribution boxplots and parity plots
 - [`toy_surfaces.ipynb`](./notebooks/toy_surfaces.ipynb): toy example figures
 
-_Note_: for these notebooks to work out of the box, data should be generated and organized using the shell scripts above
+_Note_: for these notebooks to work out of the box, data should be generated using the `make all` command from above`
