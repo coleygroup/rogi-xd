@@ -1,3 +1,4 @@
 [submodule "autoencoders"]
 	path = autoencoders
 	url = git@github.com:davidegraff/autoencoders.git
+	branch = torch1
