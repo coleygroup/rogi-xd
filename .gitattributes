@@ -1,4 +1,0 @@
-models/gin/zinc/model.pt filter=lfs diff=lfs merge=lfs -text
-models/gin/zinc/model.json filter=lfs diff=lfs merge=lfs -text
-models/vae/zinc/model.json filter=lfs diff=lfs merge=lfs -text
-models/vae/zinc/model.pt filter=lfs diff=lfs merge=lfs -text

@@ -1,3 +1,17 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:da828fe5ec9dbf5883747c138c3a14540c94e3ba9321a9d7099aba39f5deb0fb
-size 194
+{
+  "d_v": 22,
+  "d_e": 11,
+  "d_h": [
+    300,
+    300,
+    300,
+    300,
+    300
+  ],
+  "gin_kwargs": {
+    "batch_norm": true,
+    "readout": "mean"
+  },
+  "mask_rate": 0.15,
+  "lr": 0.0003
+}

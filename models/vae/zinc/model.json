@@ -1,3 +1,104 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:c3426cd7140a7f14b0419ff18278d0407763de288f7b5ddbdf5d2424bd93c8fd
-size 1712
+{
+  "tokenizer": {
+    "pattern": "(\\[|\\]|Br?|C[u,l]?|Zn|S[i,n]?|Li|Na?|Fe?|H|K|O|P|I|c|n|o|s|p|\\(|\\)|\\.|=|#|-|\\+|\\\\|\\/|:|~|@{1,2}|\\?|>|\\*|\\$|\\%[0-9]{2}|[0-9])",
+    "tokens": [
+      "#",
+      "(",
+      ")",
+      "+",
+      "-",
+      "/",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "=",
+      "@",
+      "@@",
+      "B",
+      "Br",
+      "C",
+      "Cl",
+      "F",
+      "H",
+      "I",
+      "N",
+      "O",
+      "P",
+      "S",
+      "[",
+      "\\",
+      "]",
+      "c",
+      "n",
+      "o",
+      "p",
+      "s"
+    ],
+    "st": {
+      "SOS": "<SOS>",
+      "EOS": "<EOS>",
+      "PAD": "<PAD>",
+      "UNK": "<UNK>"
+    }
+  },
+  "encoder": {
+    "embedding": {
+      "num_embeddings": 38,
+      "embedding_dim": 64,
+      "padding_idx": 36
+    },
+    "d_h": 256,
+    "n_layers": 1,
+    "dropout": 0.0,
+    "bidir": true,
+    "d_z": 128,
+    "regularizer": {
+      "alias": "vae",
+      "config": {
+        "d_z": 128
+      }
+    }
+  },
+  "decoder": {
+    "SOS": 34,
+    "EOS": 35,
+    "embedding": {
+      "num_embeddings": 38,
+      "embedding_dim": 64,
+      "padding_idx": 36
+    },
+    "d_z": 128,
+    "d_h": 512,
+    "n_layers": 3,
+    "dropout": 0.2,
+    "sampler": "mode"
+  },
+  "supervisor": {
+    "alias": "dummy",
+    "config": {}
+  },
+  "lr": 0.0003,
+  "v_reg": {
+    "cyclic": false,
+    "config": {
+      "schedule": [
+        0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5,
+        0.55, 0.6, 0.65, 0.7, 0.75, 0.8 , 0.85, 0.9 , 0.95, 1
+      ],
+      "name": "reg",
+      "i": 20
+    }
+  },
+  "v_sup": {
+    "cylic": false,
+    "config": {
+      "schedule": [0],
+      "name": "sup",
+      "i": 0
+    }
+  },
+  "shared_emb": true
+}
