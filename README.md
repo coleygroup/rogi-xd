@@ -51,12 +51,10 @@ Evaluating the roughness of learned representations from chemical foundation mod
 
 ## Pretrained models
 
-- to use the same pretrained models, run the following commands:
-  ```bash
-  git lfs install
-  git lfs pull
-  ```
-  there should be two new directories: `models/gin/zinc` and `models/vae/zinc`
+- the original pretrained models are stored in the following directories: 
+
+    - GIN: `models/gin/zinc`
+    - VAE: `models/vae/zinc`
 
 - both the VAE and GIN were pretrained over 100 epochs on the ZINC 250k dataset using a learning rate of `3e-4` and early stopping on the validation loss
 
