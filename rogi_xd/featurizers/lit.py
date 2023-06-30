@@ -2,9 +2,9 @@ import logging
 from typing import Iterable, Optional, TypeVar
 from typing_extensions import Self
 
-from lightning import pytorch as pl
 import numpy as np
 from numpy.typing import ArrayLike
+import pytorch_lightning as pl
 import torch
 import torch.utils.data
 import torchdrug.data
@@ -113,6 +113,8 @@ class VAEFeaturizer(LitFeaturizerMixin, FeaturizerBase):
     def setup_finetune(self, output_dim: int = 1):
         self.model: LitCVAE
         self.model.supervisor = RegressionSupervisor(self.model.d_z, output_dim)
+        self.model.v_rec = 0
+        self.model.v_reg = 0
         self.model.v_sup = 1
 
     def build_finetune_loaders(self, *splits: Iterable[tuple[Iterable[str], ArrayLike]]):

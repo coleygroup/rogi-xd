@@ -177,3 +177,4 @@ models/*
 results/*
 tests/*
 scripts/*
+*.ckpt
