@@ -19,7 +19,7 @@ from ae_utils.supervisors import RegressionSupervisor, ContrastiveSupervisor
 from rogi_xd.data import data
 from rogi_xd.featurizers import VAEFeaturizer
 from rogi_xd.cli.utils.command import Subcommand
-from rogi_xd.cli.utils.args import dataset_and_task
+from rogi_xd.cli.utils.args import bounded, dataset_and_task
 from rogi_xd.cli.rogi import _calc_rogi
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,14 @@ def finetune_vae(
     smis: Iterable[str],
     Y: np.ndarray,
     dt_string: str,
-    batch_size: int,
-    num_workers: int
+    v_sup: float = 50,
+    batch_size: int = 64,
+    num_workers: int = 0
 ):
     MODEL_NAME = "vae"
 
-    model = setup_model(model)
+    model.supervisor = ContrastiveSupervisor(None, None)
+    model.v_sup = v_sup
     train_loader, val_loader = build_dataloaders(smis, Y, model.tokenizer, batch_size, num_workers)
 
     pl_logger = WandbLogger(project=f"{MODEL_NAME}_{dt_string}_finetune")
@@ -46,17 +48,16 @@ def finetune_vae(
     )
     trainer.fit(model, train_loader, val_loader)
 
+    pl_logger.save()
     return model
 
-def setup_model(model):
-    model.supervisor = ContrastiveSupervisor()
-    # model.supervisor = RegressionSupervisor(model.d_z, output_dim)
 
-    model.v_rec = 0
-    model.v_reg = 0
-    model.v_sup = 1
+def setup_supervision(model: LitCVAE, v_sup: float = 50):
+    model.supervisor = ContrastiveSupervisor()
+    model.v_sup = 50
     
     return model
+
 
 def build_dataloaders(
     smis: Iterable[str], Y: np.ndarray, tokenizer: Tokenizer, batch_size: int, num_workers: int = 0
@@ -95,10 +96,10 @@ class FinetuneSubcommand(Subcommand):
             type=dataset_and_task,
         )
         parser.add_argument(
-            "-k", "--num-folds", type=int, default=5, help="the number of folds in cross-validation"
+            "-r", "--repeats", type=int, default=5, help="the number of repeats to perform"
         )
+        parser.add_argument("-f", type=bounded(0, 1)(float), help="the fraction of the dataset on which to finetune the VAE.")
         parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
-        parser.add_argument("-r", "--repeats", type=int, default=5)
         parser.add_argument(
             "-o",
             "--output",
@@ -108,6 +109,7 @@ class FinetuneSubcommand(Subcommand):
         parser.add_argument(
             "-m", "--model-dir", help="the directory of a saved VAE model"
         )
+        parser.add_argument("--v-sup", type=float, default=50)
         parser.add_argument(
             "-b",
             "--batch-size",
@@ -138,25 +140,28 @@ class FinetuneSubcommand(Subcommand):
         smis = df.smiles.values
         Y = df.y.values
 
+        N = len(df)
+        k = int(args.f * N)
+
         records = []
-        kf = KFold(args.num_folds)
-        for i, (train_idxs, _) in enumerate(kf.split(smis, Y)):
-            logger.info(f"FOLD {i}:")
+        for i in range(args.repeats):
+            logger.info(f"REPEAT {i}:")
             logger.debug("  Reloading featurizer")
             model = LitCVAE.load(args.model_dir)
 
-            smis_train = [smis[i] for i in train_idxs]
-            Y_train = Y[train_idxs]
+            idxs = np.random.choice(N, k, replace=False)
+            smis_train = [smis[i] for i in idxs]
+            Y_train = Y[idxs]
 
             model = finetune_vae(
-                model, smis_train, Y_train, dt_string, args.batch_size, args.num_workers
+                model, smis_train, Y_train, dt_string, args.v_sup, args.batch_size, args.num_workers
             )
             featurizer = VAEFeaturizer(model, num_workers=args.num_workers)
 
             records_ = _calc_rogi(df, dt_string, featurizer, args.N, args.repeats, True)
             records.extend(records_)
 
-        df = pd.DataFrame(records)
+        df = pd.DataFrame(records).drop(["thresholds", "cg_sds", "n_clusters"], axis=1)
         print(df)
         df.to_csv(args.output, index=False)
         logger.info(f"Saved output CSV to '{args.output}'")

@@ -343,6 +343,9 @@ def rogi(
     fp_config: FingerprintConfig, default=FingerprintConfig()
         the config to use for calculating fingerprints of the input SMILES strings, if necessary.
         See :class:`~rogi_xd.utils.FingerprintConfig` for more details
+    max_dist : Optional[float], default=None
+        the maximum distance in the input space, if known. If `None`, will estimate based on the
+        value of `metric`
     min_dt : float, default=0.01
         the mimimum distance to use between threshold values when coarse graining the dataset,
     domain : IntegrationDomain, default=IntegrationDomain.LOG_CLUSTER_RATIO

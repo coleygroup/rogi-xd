@@ -48,7 +48,11 @@ class LitFeaturizerMixin(BatchSizeMixin):
         dataloader = self.build_unsupervised_loader(smis)
 
         trainer = pl.Trainer(
-            logger=False, devices=1, enable_model_summary=False, enable_progress_bar=not quiet
+            accelerator="auto",
+            devices=1,
+            enable_model_summary=False,
+            enable_progress_bar=not quiet,
+            logger=False, 
         )
         Xs = trainer.predict(self.model, dataloader)
 

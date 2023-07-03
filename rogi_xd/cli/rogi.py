@@ -164,6 +164,31 @@ class RogiSubcommand(Subcommand):
 
     @staticmethod
     def add_args(parser: ArgumentParser) -> ArgumentParser:
+        RogiSubcommand._add_common_rogi_args(parser)
+        parser.add_argument(
+            "--coarse-grain",
+            "--cg",
+            action="store_true",
+            help="whether to store the raw coarse-graining results.",
+        )
+        parser.add_argument(
+            "-k",
+            "--num-folds",
+            "--cv",
+            nargs="?",
+            type=int,
+            const=5,
+            help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified",
+        )
+        parser.add_argument(
+            "--xd",
+            action="store_true",
+            help="whether to use the ROGI-XD formulation. By default, uses the original ROGI formulation."
+        )
+        return parser
+
+    @staticmethod
+    def _add_common_rogi_args(parser):
         xor_group = parser.add_mutually_exclusive_group(required=True)
         xor_group.add_argument(
             "-i",
@@ -208,34 +233,14 @@ class RogiSubcommand(Subcommand):
             help="the number of CPUs to parallelize data loading over, if possible",
         )
         parser.add_argument(
-            "--coarse-grain",
-            "--cg",
-            action="store_true",
-            help="whether to store the raw coarse-graining results.",
-        )
-        parser.add_argument(
-            "-k",
-            "--num-folds",
-            "--cv",
-            nargs="?",
-            type=int,
-            const=5,
-            help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified",
-        )
-        parser.add_argument(
             "--reinit",
             action="store_true",
             help="randomize the weights of a pretrained model before using it",
         )
-        parser.add_argument(
-            "--xd",
-            action="store_true",
-            help="whether to use the ROGI-XD formulation. By default, uses the original ROGI formulation."
-        )
+
         parser.add_argument(
             "-l", "--length", type=int, nargs="?", help="the length of a random representation"
         )
-        return parser
 
     @staticmethod
     def func(args: Namespace):

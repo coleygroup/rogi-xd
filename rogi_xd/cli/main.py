@@ -6,6 +6,7 @@ from rogi_xd.cli.utils.command import Subcommand
 from rogi_xd.cli.finetune import FinetuneSubcommand
 from rogi_xd.cli.list import ListSubcommand
 from rogi_xd.cli.rogi import RogiSubcommand
+from rogi_xd.cli.knn import KnnSubcommand
 from rogi_xd.cli.train import TrainSubcommand
 from rogi_xd.cli.utils import NOW, pop_attr
 
@@ -33,10 +34,9 @@ def main():
     SUBCOMMANDS: list[Type[Subcommand]] = [
         ListSubcommand,
         RogiSubcommand,
+        KnnSubcommand,
         TrainSubcommand,
         FinetuneSubcommand,
-        # CoarseGrainSubcommand,
-        # CrossValidateSubcommand
     ]
     for subcommand in SUBCOMMANDS:
         subcommand.add(subparsers, parents)

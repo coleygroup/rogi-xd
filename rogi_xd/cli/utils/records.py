@@ -7,9 +7,7 @@ from rogi_xd.utils.rogi import RogiResult
 
 
 @dataclass(frozen=True)
-class RogiRecord:
-    representation: str
-    dataset_and_task: str
+class RogiResultMixin:
     rogi_result: InitVar[RogiResult]
 
     rogi: float = field(init=False)
@@ -24,6 +22,25 @@ class RogiRecord:
                 continue
             object.__setattr__(self, k, v)
 
+
+@dataclass(frozen=True)
+class RogiRecordBase:
+    representation: str
+    dataset_and_task: str
+
+
+@dataclass(frozen=True)
+class RogiRecord(RogiResultMixin, RogiRecordBase):
+    pass
+
+
+@dataclass(frozen=True)
+class RogiKnnRecordBase(RogiRecordBase):
+    k: int
+
+@dataclass(frozen=True)
+class RogiKnnRecord(RogiResultMixin, RogiKnnRecordBase):
+    pass
 
 class CrossValdiationResult(NamedTuple):
     model: str
