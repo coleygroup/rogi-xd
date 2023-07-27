@@ -18,5 +18,8 @@ cv-xd:
 rogi:
 	./scripts/rogi.sh
 
+knn:
+	./scripts/knn.sh
+	
 clean:
 	rm -rf logs/*

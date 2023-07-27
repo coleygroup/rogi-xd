@@ -1,26 +1,28 @@
 from argparse import ArgumentParser, Namespace
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Collection, Optional
 
 import pandas as pd
+from tqdm import tqdm
 
-from rogi_xd.cli.rogi import RogiSubcommand
-from rogi_xd.cli.utils.args import dataset_and_task
-from rogi_xd.featurizers import FeaturizerBase, FeaturizerRegistry
-from rogi_xd.cli.utils.records import RogiKnnRecord
+from rogi_xd.data import data
+from rogi_xd.featurizers import FeaturizerBase
 from rogi_xd.knn import rogi_knn
+from rogi_xd.cli.rogi import RogiSubcommand
+from rogi_xd.cli.utils.args import bounded, dataset_and_task
+from rogi_xd.cli.utils.records import RogiKnnRecord
 
 logger = logging.getLogger(__name__)
 
 
-def _calc_rogi_knn(
+def _calc_rogi_knns(
     df: pd.DataFrame,
     dt_string: str,
     f: FeaturizerBase,
     n: int,
     repeats: Optional[int],
-    k: int,
+    ks: Collection[int],
 ) -> list[RogiKnnRecord]:
     """Calculate the ROGI-KNN of a given dataset
 
@@ -39,15 +41,19 @@ def _calc_rogi_knn(
     n : int
         the maximum number of rows to take from a dataset. Larger datasets will be subsampled to `n`
     repeats : Optional[int]
-        the number of repeats to use when subsampling
-    k : int, default=5
-        the number of nearest neighbors to use
+        the number of repeats to use when subsampling. If subsampling isn't necessary, then will be
+        set to 1
+    ks : Collection[int], default=None
+        the values of `k` to use. If empty, use all values of `k`
 
     Returns
     -------
     list[RogiKnnRecord]
         a list of length `repeats` containing one `RogiKnnRecord` for each repeat
     """
+    if len(ks) == 0:
+        ks = range(1, len(df) + 1)
+
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
 
@@ -56,14 +62,17 @@ def _calc_rogi_knn(
             df_sample = df.sample(n)
             xs = f(df_sample.smiles.tolist())
             y = df_sample.y.values
-            result = rogi_knn(xs, y, k=k)
-            record = RogiKnnRecord(str(f), dt_string, k, result)
-            records.append(record)
+            for k in tqdm(ks, "k"):
+                result = rogi_knn(xs, y, k=k)
+                record = RogiKnnRecord(str(f), dt_string, k, result)
+                records.append(record)
     else:
         xs = f(df.smiles.tolist())
-        result = rogi_knn(xs, y, k=k)
-        record = RogiKnnRecord(str(f), dt_string, k, result)
-        records = [record for _ in range(repeats)]
+
+        records = []
+        for k in tqdm(ks, "k"):
+            result = rogi_knn(xs, df.y.values, k=k)
+            records.append(RogiKnnRecord(str(f), dt_string, k, result))
 
     return records
 
@@ -75,7 +84,13 @@ class KnnSubcommand(RogiSubcommand):
     @staticmethod
     def add_args(parser: ArgumentParser) -> ArgumentParser:
         RogiSubcommand._add_common_rogi_args(parser)
-        parser.add_argument("-k", type=int, default=5, help="the number of neighbors to use")
+        parser.add_argument(
+            "-k",
+            type=bounded(1)(int),
+            nargs="*",
+            default=[5],
+            help="the number of neighbors to use"
+        )
 
         return parser
 
@@ -86,8 +101,9 @@ class KnnSubcommand(RogiSubcommand):
                 [dataset_and_task(l) for l in args.input.read_text().splitlines()]
             )
 
-        suffix = "json" if args.coarse_grain else "csv"
-        args.output = args.output or Path(f"results/raw/rogi/{args.featurizer}.{suffix}")
+        print(args)
+
+        args.output = args.output or Path(f"results/raw/knn/{args.featurizer}.csv")
         args.output.parent.mkdir(parents=True, exist_ok=True)
 
         f = RogiSubcommand.build_featurizer(
@@ -103,8 +119,11 @@ class KnnSubcommand(RogiSubcommand):
         try:
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
+                df = data.get(d, t)
+                dt_string = f"{d}/{t}" if t else d
+
                 try:
-                    records_ = _calc_rogi_knn(f, d, t, args.N, args.repeats, cv, args.xd)
+                    records_ = _calc_rogi_knns(df, dt_string, f, args.N, args.repeats, args.k)
                     records.extend(records_)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")

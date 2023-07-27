@@ -44,7 +44,7 @@ def finetune_vae(
     early_stopping = EarlyStopping("val/sup", patience=5)
 
     trainer = pl.Trainer(
-        accelerator="gpu", logger=pl_logger, callbacks=[early_stopping], devices=1, max_epochs=100
+        pl_logger, False, [early_stopping], accelerator="gpu", devices=1, max_epochs=100
     )
     trainer.fit(model, train_loader, val_loader)
 

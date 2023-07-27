@@ -35,10 +35,10 @@ done
 [[ "$reinit" = true ]] && reinit_flag="--reinit" || reinit_flag=""
 if [[ "$v1" = true ]]; then
     parent_dir=`basename $input .txt`_v1
-    v1_flag="--v1"
+    xd_flag=""
 else
     parent_dir=`basename $input .txt`_v2
-    v1_flag=""
+    xd_flag="--xd"
 fi
 
 
@@ -56,7 +56,7 @@ for f in "${featurizers[@]}"; do
     model_dir=models/$f/zinc
 
     rogi_xd rogi -i$input -o$output -f$f -N$N -m$model_dir -vvvv --log --cv --cg -l$length \
-        ${reinit_flag} ${v1_flag}
+        ${reinit_flag} ${xd_flag}
 
     if [[ "$reinit" = true ]]; then
         sed -i -e "s/${f}/${f}_reinit/I" $output 

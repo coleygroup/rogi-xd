@@ -3,11 +3,17 @@ from typing import NamedTuple
 
 import numpy as np
 
-from rogi_xd.utils.rogi import RogiResult
+from rogi_xd.utils.rogi import RogiKnnResult, RogiResult
 
 
 @dataclass(frozen=True)
-class RogiResultMixin:
+class RogiRecordBase:
+    representation: str
+    dataset_and_task: str
+
+
+@dataclass(frozen=True)
+class RogiRecord(RogiRecordBase):
     rogi_result: InitVar[RogiResult]
 
     rogi: float = field(init=False)
@@ -24,23 +30,19 @@ class RogiResultMixin:
 
 
 @dataclass(frozen=True)
-class RogiRecordBase:
-    representation: str
-    dataset_and_task: str
-
-
-@dataclass(frozen=True)
-class RogiRecord(RogiResultMixin, RogiRecordBase):
-    pass
-
-
-@dataclass(frozen=True)
-class RogiKnnRecordBase(RogiRecordBase):
+class RogiKnnRecord(RogiRecordBase):
     k: int
+    rogi_result: InitVar[RogiKnnResult]
 
-@dataclass(frozen=True)
-class RogiKnnRecord(RogiResultMixin, RogiKnnRecordBase):
-    pass
+    rmse: float = field(init=False)
+    n_valid: int = field(init=False)
+
+    def __post_init__(self, rogi_result: RogiKnnResult):
+        for k, v in rogi_result._asdict().items():
+            if k == "uncertainty":
+                continue
+            object.__setattr__(self, k, v)
+
 
 class CrossValdiationResult(NamedTuple):
     model: str
