@@ -3,14 +3,18 @@ from typing import NamedTuple
 
 import numpy as np
 
-from rogi_xd.utils.rogi import RogiResult
+from rogi_xd.utils.rogi import RogiKnnResult, RogiResult
 
 
 @dataclass(frozen=True)
-class RogiRecord:
+class RogiRecordBase:
     representation: str
     dataset_and_task: str
-    rr: InitVar[RogiResult]
+
+
+@dataclass(frozen=True)
+class RogiRecord(RogiRecordBase):
+    rogi_result: InitVar[RogiResult]
 
     rogi: float = field(init=False)
     n_valid: int = field(init=False)
@@ -18,8 +22,23 @@ class RogiRecord:
     cg_sds: np.ndarray = field(init=False)
     n_clusters: np.ndarray = field(init=False)
 
-    def __post_init__(self, rr: RogiResult):
-        for k, v in rr._asdict().items():
+    def __post_init__(self, rogi_result: RogiResult):
+        for k, v in rogi_result._asdict().items():
+            if k == "uncertainty":
+                continue
+            object.__setattr__(self, k, v)
+
+
+@dataclass(frozen=True)
+class RogiKnnRecord(RogiRecordBase):
+    k: int
+    rogi_result: InitVar[RogiKnnResult]
+
+    rmse: float = field(init=False)
+    n_valid: int = field(init=False)
+
+    def __post_init__(self, rogi_result: RogiKnnResult):
+        for k, v in rogi_result._asdict().items():
             if k == "uncertainty":
                 continue
             object.__setattr__(self, k, v)
@@ -34,14 +53,14 @@ class CrossValdiationResult(NamedTuple):
 
 @dataclass(frozen=True)
 class RogiAndCrossValRecord(RogiRecord):
-    cvr: InitVar[CrossValdiationResult]
+    cv_result: InitVar[CrossValdiationResult]
 
     model: str = field(init=False)
     r2: float = field(init=False)
     rmse: float = field(init=False)
     mae: float = field(init=False)
 
-    def __post_init__(self, rr: RogiResult, cvr: CrossValdiationResult):
-        super().__post_init__(rr)
-        for k, v in cvr._asdict().items():
+    def __post_init__(self, rogi_result: RogiResult, cv_result: CrossValdiationResult):
+        super().__post_init__(rogi_result)
+        for k, v in cv_result._asdict().items():
             object.__setattr__(self, k, v)

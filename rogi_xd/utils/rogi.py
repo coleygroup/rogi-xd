@@ -40,3 +40,9 @@ class RogiResult(NamedTuple):
     thresholds: np.ndarray
     cg_sds: np.ndarray
     n_clusters: np.ndarray
+
+
+class RogiKnnResult(NamedTuple):
+    rmse: float
+    uncertainty: Optional[float]
+    n_valid: int

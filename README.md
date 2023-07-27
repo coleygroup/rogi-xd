@@ -118,6 +118,16 @@ _Note_: The scripts rely datasets from both TDC [[1]] and GuacaMol oracle functi
 [2]: https://tdcommons.ai/generation_tasks/molgen/
 
 
+### Finetuning
+
+To finetune a VAE model, run the following command:
+```
+rogi_xd finetune -m models/vae/zinc/ -b 64 -d DATASET_TASK -f FRACTION
+```
+
+For our experiments, we used `-d LIPOPHILICITY_ASTRAZENECA` and `-f 0.8`
+
+
 ## Figures
 
 See the corresponding notebook:

@@ -45,9 +45,35 @@ def _calc_rogi(
     f: FeaturizerBase,
     n: int,
     repeats: Optional[int],
-    orig: bool = False,
+    xd: bool = False,
 ) -> list[RogiRecord]:
-    domain = IntegrationDomain.THRESHOLD if orig else IntegrationDomain.LOG_CLUSTER_RATIO
+    """Calculate the ROGI of a given dataset
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        a dataframe containing at least two comlums
+        
+        * `smiles` the SMILES string of each molecule in the dataset
+        * `y`: the target value of each molecule in the dataset
+    dt_string : str
+        the string identifier of the dataset
+    f : FeaturizerBase
+        the featurizer with which to calculate feature representations of the molecules in the
+        dataset
+    n : int
+        the maximum number of rows to take from a dataset. Larger datasets will be subsampled to `n`
+    repeats : Optional[int]
+        the number of repeats to use when subsampling
+    xd : bool, default=False
+        whether to use the ROGI-XD formulation
+
+    Returns
+    -------
+    list[RogiRecord]
+        a list of length `repeats` containing one `RogiRecord` for each repeat
+    """
+    domain = IntegrationDomain.THRESHOLD if not xd else IntegrationDomain.LOG_CLUSTER_RATIO
 
     if len(df) > n:
         logger.info(f"Repeating with {repeats} subsamples (n={n}) from dataset (N={len(df)})")
@@ -57,13 +83,13 @@ def _calc_rogi(
             df_sample = df.sample(n)
             xs = f(df_sample.smiles.tolist())
             y = df_sample.y.values
-            rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
-            record = RogiRecord(str(f), dt_string, rr)
+            result = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
+            record = RogiRecord(str(f), dt_string, result)
             records.append(record)
     else:
         xs = f(df.smiles.tolist())
-        rr = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
-        record = RogiRecord(str(f), dt_string, rr)
+        result = rogi(xs, df.y.values, metric=f.metric, min_dt=0.01, domain=domain)
+        record = RogiRecord(str(f), dt_string, result)
         records = [record for _ in range(repeats)]
 
     return records
@@ -83,7 +109,6 @@ def _calc_cv(
 
     if len(df) > n:
         logger.info(f"Subsampling {n} rows from dataset (N={len(df)})")
-
         df = df.sample(n)
 
     xs = f(df.smiles.tolist())
@@ -92,7 +117,7 @@ def _calc_cv(
     X = xs if isinstance(xs, np.ndarray) else np.array(xs)
     y_normed = MinMaxScaler().fit_transform(y.reshape(-1, 1))[:, 0]
 
-    cvrs = []
+    cv_results = []
     for name, model in name2model.items():
         logger.info(f"  MODEL: {name}")
         scores = cross_validate(
@@ -102,10 +127,13 @@ def _calc_cv(
         r2 = r2.mean()
         rmse = np.sqrt(-neg_mse).mean()
         mae = -neg_mae.mean()
-        cvrs.append(CrossValdiationResult(name, r2, rmse, mae))
+        cv_results.append(CrossValdiationResult(name, r2, rmse, mae))
 
-    rr = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
-    records = [RogiAndCrossValRecord(str(f), dt_string, rr, cvr) for cvr in cvrs]
+    rogi_result = rogi(xs, y, metric=f.metric, min_dt=0.01, domain=domain)
+    records = [
+        RogiAndCrossValRecord(str(f), dt_string, rogi_result, cv_result)
+        for cv_result in cv_results
+    ]
 
     return records
 
@@ -117,15 +145,15 @@ def calc(
     n: int,
     repeats: Optional[int] = 5,
     cv: Optional[KFold] = None,
-    orig: bool = False,
+    xd: bool = False,
 ) -> Union[list[RogiRecord], list[RogiAndCrossValRecord]]:
     df = data.get(dataset, task)
     dt_string = f"{dataset}/{task}" if task else dataset
 
     if cv is not None:
-        records = _calc_cv(df, dt_string, f, n, cv, orig)
+        records = _calc_cv(df, dt_string, f, n, cv, xd)
     else:
-        records = _calc_rogi(df, dt_string, f, n, repeats, orig)
+        records = _calc_rogi(df, dt_string, f, n, repeats, xd)
 
     return records
 
@@ -136,6 +164,31 @@ class RogiSubcommand(Subcommand):
 
     @staticmethod
     def add_args(parser: ArgumentParser) -> ArgumentParser:
+        RogiSubcommand._add_common_rogi_args(parser)
+        parser.add_argument(
+            "--coarse-grain",
+            "--cg",
+            action="store_true",
+            help="whether to store the raw coarse-graining results.",
+        )
+        parser.add_argument(
+            "-k",
+            "--num-folds",
+            "--cv",
+            nargs="?",
+            type=int,
+            const=5,
+            help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified",
+        )
+        parser.add_argument(
+            "--xd",
+            action="store_true",
+            help="whether to use the ROGI-XD formulation. By default, uses the original ROGI formulation."
+        )
+        return parser
+
+    @staticmethod
+    def _add_common_rogi_args(parser):
         xor_group = parser.add_mutually_exclusive_group(required=True)
         xor_group.add_argument(
             "-i",
@@ -155,8 +208,8 @@ class RogiSubcommand(Subcommand):
         parser.add_argument(
             "-f", "--featurizer", type=lambda s: s.lower(), choices=FeaturizerRegistry.keys()
         )
-        parser.add_argument("-r", "--repeats", type=int, default=5)
         parser.add_argument("-N", type=int, default=10000, help="the number of data to subsample")
+        parser.add_argument("-r", "--repeats", type=int, default=5)
         parser.add_argument(
             "-o",
             "--output",
@@ -180,34 +233,14 @@ class RogiSubcommand(Subcommand):
             help="the number of CPUs to parallelize data loading over, if possible",
         )
         parser.add_argument(
-            "--coarse-grain",
-            "--cg",
-            action="store_true",
-            help="whether to store the raw coarse-graining results.",
-        )
-        parser.add_argument(
-            "-k",
-            "--num-folds",
-            "--cv",
-            nargs="?",
-            type=int,
-            const=5,
-            help="the number of folds to use in cross-validation. If this flag is present, then this script will run in cross-validation mode, otherwise it will just perform ROGI calculation. Adding only the flag (i.e., just '-k') corresponds to a default of 5 folds, but a specific number may be specified",
-        )
-        parser.add_argument(
             "--reinit",
             action="store_true",
             help="randomize the weights of a pretrained model before using it",
         )
-        parser.add_argument(
-            "--orig",
-            action="store_true",
-            help="whether to use the original ROGI formulation (i.e., distance threshold as the x-axis). By default, uses the ROGI-XD formulation (i.e., 1 - log N_clusters / log N as the x-axis)",
-        )
+
         parser.add_argument(
             "-l", "--length", type=int, nargs="?", help="the length of a random representation"
         )
-        return parser
 
     @staticmethod
     def func(args: Namespace):
@@ -235,7 +268,7 @@ class RogiSubcommand(Subcommand):
             for d, t in args.datasets_tasks:
                 logger.info(f"running dataset/task={d}/{t}")
                 try:
-                    records_ = calc(f, d, t, args.N, args.repeats, cv, args.orig)
+                    records_ = calc(f, d, t, args.N, args.repeats, cv, args.xd)
                     records.extend(records_)
                 except FloatingPointError as e:
                     logger.error(f"ROGI calculation failed! dataset/task={d}/{t}. Skipping...")
